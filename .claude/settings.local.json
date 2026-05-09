@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($python = \"C:\\\\Users\\\\ignac\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\"; & $python -m pip install pydantic pydantic-settings 2>&1 | Select-Object -Last 5)"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($python = \"C:\\\\Users\\\\ignac\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\"; & $python -m pip show pydantic 2>&1)",
+      "PowerShell($python = \"C:\\\\Users\\\\ignac\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\"; Set-Location \"c:\\\\Users\\\\ignac\\\\OneDrive\\\\Desktop\\\\oasis\\\\oasis-finance\\\\backend\"; & $python -m pip install -r requirements.txt 2>&1 | Select-Object -Last 15)",
+      "PowerShell($python = \"C:\\\\Users\\\\ignac\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\"; Set-Location \"c:\\\\Users\\\\ignac\\\\OneDrive\\\\Desktop\\\\oasis\\\\oasis-finance\\\\backend\"; & $python -m uvicorn app.main:app --reload 2>&1)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }; Write-Output \"killed\")",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\ignac\\\\OneDrive\\\\Desktop\\\\oasis\\\\oasis-finance\\\\frontend\\\\assets\" -Force)",
+      "PowerShell(\\(Get-Item \"c:\\\\Users\\\\ignac\\\\OneDrive\\\\Desktop\\\\oasis\\\\oasis-finance\\\\frontend\\\\assets\\\\icon.png\"\\).Length)"
+    ]
+  }
+}
