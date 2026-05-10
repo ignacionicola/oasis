@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, and_
 
 from app.database import get_db
-from app.models import Expense
+from app.models import Expense, Income
 from app.models.schemas import MonthSummary, BudgetStatus
 from app.skills.budget_alert import get_all_budget_status
 
@@ -37,6 +37,14 @@ def get_month_summary(
     today = date.today()
     month = month or today.month
     year = year or today.year
+
+    # Ingresos del mes
+    income_total = db.query(func.sum(Income.amount)).filter(
+        and_(
+            extract("month", Income.date) == month,
+            extract("year", Income.date) == year,
+        )
+    ).scalar() or 0.0
 
     # Gastos del mes (excluyendo duplicados)
     expenses = (
@@ -75,10 +83,14 @@ def get_month_summary(
     budget_status_raw = get_all_budget_status(db, year, month)
     budget_status = [BudgetStatus(**bs) for bs in budget_status_raw]
 
+    total_income = round(float(income_total), 2)
+
     return MonthSummary(
         month=MONTH_NAMES_ES[month],
         year=year,
         total_spent=round(total_spent, 2),
+        total_income=total_income,
+        available=round(total_income - total_spent, 2),
         expense_count=expense_count,
         by_category={k: round(v, 2) for k, v in by_category.items()},
         daily_average=round(daily_average, 2),

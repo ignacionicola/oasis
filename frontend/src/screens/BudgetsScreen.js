@@ -3,9 +3,11 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, RefreshControl, TextInput, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, shadows, categoryIcons } from '../theme';
 import api from '../services/api';
+import ErrorBanner from '../components/ErrorBanner';
 
 export default function BudgetsScreen() {
   const [budgets, setBudgets] = useState([]);
@@ -13,18 +15,29 @@ export default function BudgetsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [error, setError] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
       const now = new Date();
-      const [budgetData, summaryData] = await Promise.all([
+      let [budgetData, summaryData] = await Promise.all([
         api.getBudgets(),
         api.getMonthSummary(now.getMonth() + 1, now.getFullYear()),
       ]);
+
+      if (budgetData.length === 0) {
+        try {
+          await api.initDefaultBudgets();
+          budgetData = await api.getBudgets();
+        } catch (initErr) {
+          console.warn('No se pudieron inicializar los presupuestos por defecto:', initErr.message);
+        }
+      }
+
       setBudgets(budgetData);
       setBudgetStatus(summaryData.budget_status || []);
     } catch (err) {
-      console.warn('Error cargando budgets:', err.message);
+      setError(err.message);
     }
   }, []);
 
@@ -32,18 +45,9 @@ export default function BudgetsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setError(null);
     await loadData();
     setRefreshing(false);
-  };
-
-  const handleInitDefaults = async () => {
-    try {
-      await api.initDefaultBudgets();
-      await loadData();
-      Alert.alert('Listo', 'Presupuestos inicializados con valores por defecto.');
-    } catch (err) {
-      Alert.alert('Error', err.message);
-    }
   };
 
   const handleSaveEdit = async (category) => {
@@ -67,28 +71,24 @@ export default function BudgetsScreen() {
   };
 
   return (
+    <SafeAreaView style={styles.container} edges={['top']}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
+      {error && (
+        <ErrorBanner
+          message={error}
+          onRetry={() => { setError(null); loadData(); }}
+        />
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Presupuestos</Text>
         <Text style={styles.subtitle}>Límites mensuales por categoría</Text>
       </View>
-
-      {/* Init button si no hay budgets */}
-      {budgets.length === 0 && (
-        <View style={styles.emptyContainer}>
-          <MaterialIcons name="account-balance-wallet" size={48} color={colors.textTertiary} />
-          <Text style={styles.emptyText}>No hay presupuestos configurados</Text>
-          <TouchableOpacity style={styles.initButton} onPress={handleInitDefaults}>
-            <MaterialIcons name="auto-fix-high" size={18} color={colors.textInverse} />
-            <Text style={styles.initButtonText}>Usar valores por defecto</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Lista de presupuestos */}
       {budgets.length > 0 && (
@@ -195,6 +195,7 @@ export default function BudgetsScreen() {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -231,31 +232,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textTertiary,
     marginTop: 2,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl * 2,
-    gap: spacing.md,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  initButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.sm,
-  },
-  initButtonText: {
-    color: colors.textInverse,
-    fontSize: 15,
-    fontWeight: '600',
   },
   listContainer: {
     marginTop: spacing.lg,

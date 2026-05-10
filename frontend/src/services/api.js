@@ -5,20 +5,23 @@
  * testees desde un dispositivo físico.
  */
 
-const BASE_URL = 'http://192.168.0.79:8000/api/v1'; // Dispositivo físico
-// const BASE_URL = 'http://10.0.2.2:8000/api/v1';   // Android emulator
-// const BASE_URL = 'http://localhost:8000/api/v1';   // Web
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8000/api/v1';
 
 class ApiService {
   async request(endpoint, options = {}) {
     const url = `${BASE_URL}${endpoint}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const config = {
       headers: { 'Content-Type': 'application/json' },
       ...options,
+      signal: controller.signal,
     };
 
     try {
       const response = await fetch(url, config);
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -28,10 +31,12 @@ class ApiService {
       if (response.status === 204) return null;
       return await response.json();
     } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('El servidor tardó demasiado en responder. Verificá tu conexión.');
+      }
       if (error.message === 'Network request failed') {
-        throw new Error(
-          'No se pudo conectar al servidor. ¿Está corriendo el backend?'
-        );
+        throw new Error('No se pudo conectar al servidor. ¿Está corriendo el backend?');
       }
       throw error;
     }
@@ -82,6 +87,26 @@ class ApiService {
 
   async initDefaultBudgets() {
     return this.request('/budgets/init-defaults', { method: 'POST' });
+  }
+
+  // ── Incomes ──
+
+  async createIncome(data) {
+    return this.request('/incomes/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getIncomes({ month, year } = {}) {
+    const params = new URLSearchParams();
+    if (month) params.append('month', month);
+    if (year) params.append('year', year);
+    return this.request(`/incomes/?${params.toString()}`);
+  }
+
+  async deleteIncome(id) {
+    return this.request(`/incomes/${id}`, { method: 'DELETE' });
   }
 
   // ── Dashboard ──

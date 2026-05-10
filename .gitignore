@@ -9,6 +9,7 @@ dist/
 build/
 venv/
 .env
+frontend/.env
 
 # Base de datos SQLite
 *.db

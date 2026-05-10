@@ -3,12 +3,16 @@ import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, RefreshControl, Alert, StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, shadows } from '../theme';
 import api from '../services/api';
 import ExpenseCard from '../components/ExpenseCard';
 import BudgetBar from '../components/BudgetBar';
 import AddExpenseModal from '../components/AddExpenseModal';
+import IncomesModal from '../components/IncomesModal';
+import ExpenseDetailModal from '../components/ExpenseDetailModal';
+import ErrorBanner from '../components/ErrorBanner';
 
 export default function HomeScreen() {
   const [summary, setSummary] = useState(null);
@@ -16,6 +20,9 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [incomesModalVisible, setIncomesModalVisible] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [error, setError] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -27,7 +34,7 @@ export default function HomeScreen() {
       setSummary(summaryData);
       setExpenses(expenseData);
     } catch (error) {
-      console.warn('Error cargando datos:', error.message);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -37,6 +44,7 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setError(null);
     await loadData();
     setRefreshing(false);
   };
@@ -63,54 +71,77 @@ export default function HomeScreen() {
     await loadData();
   };
 
-  const handleDeleteExpense = (expense) => {
-    Alert.alert(
-      'Eliminar gasto',
-      `¿Eliminar "${expense.description}" por $${expense.amount}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.deleteExpense(expense.id);
-              await loadData();
-            } catch (err) {
-              Alert.alert('Error', err.message);
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteExpense = async (expense) => {
+    try {
+      await api.deleteExpense(expense.id);
+      setSelectedExpense(null);
+      await loadData();
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
   };
 
   const renderHeader = () => (
     <View>
       {/* Hero Card */}
       <View style={styles.heroCard}>
-        <Text style={styles.heroLabel}>Gastaste este mes</Text>
-        <Text style={styles.heroAmount}>
-          ${summary ? formatAmount(summary.total_spent) : '—'}
-        </Text>
-        <View style={styles.heroMeta}>
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatValue}>{summary?.expense_count || 0}</Text>
-            <Text style={styles.heroStatLabel}>gastos</Text>
-          </View>
-          <View style={styles.heroDivider} />
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatValue}>
-              ${summary ? formatAmount(summary.daily_average) : '—'}
+        {summary?.total_income > 0 ? (
+          <>
+            <Text style={styles.heroLabel}>Disponible este mes</Text>
+            <Text style={[
+              styles.heroAmount,
+              { color: summary.available >= 0 ? colors.primary : colors.danger },
+            ]}>
+              ${formatAmount(Math.abs(summary.available))}
             </Text>
-            <Text style={styles.heroStatLabel}>por día</Text>
-          </View>
-          <View style={styles.heroDivider} />
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatValue}>{summary?.top_category || '—'}</Text>
-            <Text style={styles.heroStatLabel}>top categoría</Text>
-          </View>
-        </View>
+            <View style={styles.heroMeta}>
+              <TouchableOpacity
+                style={styles.heroStat}
+                onPress={() => setIncomesModalVisible(true)}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.heroStatValue}>
+                  ${formatAmount(summary.total_income)}
+                </Text>
+                <Text style={[styles.heroStatLabel, { color: colors.primary }]}>
+                  ingresos ›
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.heroDivider} />
+              <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>
+                  ${formatAmount(summary.total_spent)}
+                </Text>
+                <Text style={styles.heroStatLabel}>gastado</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.heroLabel}>Gastaste este mes</Text>
+            <Text style={styles.heroAmount}>
+              ${summary ? formatAmount(summary.total_spent) : '—'}
+            </Text>
+            <View style={styles.heroMeta}>
+              <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>{summary?.expense_count || 0}</Text>
+                <Text style={styles.heroStatLabel}>gastos</Text>
+              </View>
+              <View style={styles.heroDivider} />
+              <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>
+                  ${summary ? formatAmount(summary.daily_average) : '—'}
+                </Text>
+                <Text style={styles.heroStatLabel}>por día</Text>
+              </View>
+              <View style={styles.heroDivider} />
+              <View style={styles.heroStat}>
+                <Text style={styles.heroStatValue}>{summary?.top_category || '—'}</Text>
+                <Text style={styles.heroStatLabel}>top categoría</Text>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Presupuestos */}
@@ -146,8 +177,15 @@ export default function HomeScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+
+      {error && (
+        <ErrorBanner
+          message={error}
+          onRetry={() => { setError(null); loadData(); }}
+        />
+      )}
 
       {/* Top Bar */}
       <View style={styles.topBar}>
@@ -164,7 +202,7 @@ export default function HomeScreen() {
         data={expenses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <ExpenseCard expense={item} onPress={handleDeleteExpense} />
+          <ExpenseCard expense={item} onPress={setSelectedExpense} />
         )}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
@@ -194,13 +232,29 @@ export default function HomeScreen() {
         <MaterialIcons name="add" size={28} color={colors.textInverse} />
       </TouchableOpacity>
 
-      {/* Modal */}
+      {/* Modal lista de ingresos */}
+      <IncomesModal
+        visible={incomesModalVisible}
+        month={new Date().getMonth() + 1}
+        year={new Date().getFullYear()}
+        onClose={() => setIncomesModalVisible(false)}
+        onUpdate={loadData}
+      />
+
+      {/* Modal nuevo gasto */}
       <AddExpenseModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={handleAddExpense}
       />
-    </View>
+
+      {/* Modal detalle gasto */}
+      <ExpenseDetailModal
+        expense={selectedExpense}
+        onClose={() => setSelectedExpense(null)}
+        onDelete={handleDeleteExpense}
+      />
+    </SafeAreaView>
   );
 }
 

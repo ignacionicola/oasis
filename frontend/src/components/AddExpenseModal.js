@@ -7,6 +7,35 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../theme';
 
+function parseArgentineAmount(str) {
+  const s = str.trim();
+  const hasComma = s.includes(',');
+  const hasDot = s.includes('.');
+
+  if (hasComma && hasDot) {
+    // Formato AR: 1.500,50 — el punto es separador de miles, la coma es decimal
+    return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+  }
+
+  if (hasComma && !hasDot) {
+    const afterComma = s.split(',')[1] || '';
+    // Si hay exactamente 3 dígitos tras la coma → separador de miles: 1,500 → 1500
+    if (afterComma.length === 3) {
+      return parseFloat(s.replace(',', ''));
+    }
+    // Sino → decimal europeo: 1500,50 → 1500.50
+    return parseFloat(s.replace(',', '.'));
+  }
+
+  if (!hasComma && hasDot) {
+    // Decimal estándar: 1500.50
+    return parseFloat(s);
+  }
+
+  // Sin separadores: 1500
+  return parseFloat(s);
+}
+
 const CATEGORIES = [
   { name: 'Comida', icon: 'restaurant' },
   { name: 'Transporte', icon: 'directions-car' },
@@ -31,7 +60,7 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
       return;
     }
 
-    const parsedAmount = parseFloat(amount.replace(/[,.]/g, ''));
+    const parsedAmount = parseArgentineAmount(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Monto inválido', 'Ingresá un monto válido.');
       return;

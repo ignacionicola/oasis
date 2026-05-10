@@ -46,6 +46,26 @@ class ExpenseWithAlert(BaseModel):
     duplicate_warning: dict | None = None
 
 
+# ── Income Schemas ──
+
+class IncomeCreate(BaseModel):
+    amount: float = Field(..., gt=0, description="Monto del ingreso")
+    description: str | None = Field(None, max_length=200)
+    income_date: dt.date = Field(default_factory=dt.date.today, alias="date")
+
+    model_config = {"populate_by_name": True}
+
+
+class IncomeResponse(BaseModel):
+    id: int
+    amount: float
+    description: str | None
+    date: dt.date
+    created_at: dt.datetime | None
+
+    model_config = {"from_attributes": True}
+
+
 # ── Budget Schemas ──
 
 class BudgetCreate(BaseModel):
@@ -82,6 +102,8 @@ class MonthSummary(BaseModel):
     month: str
     year: int
     total_spent: float
+    total_income: float
+    available: float
     expense_count: int
     by_category: dict[str, float]
     daily_average: float

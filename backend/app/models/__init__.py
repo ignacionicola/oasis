@@ -48,6 +48,29 @@ class Expense(Base):
         }
 
 
+class Income(Base):
+    __tablename__ = "incomes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    amount = Column(Float, nullable=False)
+    description = Column(String(200), nullable=True)
+    date = Column(Date, nullable=False, default=date.today)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_income_date", "date"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "amount": self.amount,
+            "description": self.description,
+            "date": self.date.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class Budget(Base):
     __tablename__ = "budgets"
 

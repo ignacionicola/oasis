@@ -3,9 +3,11 @@ import {
   View, Text, ScrollView, StyleSheet,
   RefreshControl, Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, shadows, categoryIcons } from '../theme';
 import api from '../services/api';
+import ErrorBanner from '../components/ErrorBanner';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -13,6 +15,7 @@ export default function StatsScreen() {
   const [categories, setCategories] = useState([]);
   const [summary, setSummary] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -26,7 +29,7 @@ export default function StatsScreen() {
       setCategories(cats);
       setSummary(sum);
     } catch (err) {
-      console.warn('Error cargando stats:', err.message);
+      setError(err.message);
     }
   }, []);
 
@@ -34,6 +37,7 @@ export default function StatsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setError(null);
     await loadData();
     setRefreshing(false);
   };
@@ -41,11 +45,19 @@ export default function StatsScreen() {
   const maxTotal = Math.max(...categories.map(c => c.total), 1);
 
   return (
+    <SafeAreaView style={styles.container} edges={['top']}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
+      {error && (
+        <ErrorBanner
+          message={error}
+          onRetry={() => { setError(null); loadData(); }}
+        />
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Estadísticas</Text>
@@ -140,6 +152,7 @@ export default function StatsScreen() {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
