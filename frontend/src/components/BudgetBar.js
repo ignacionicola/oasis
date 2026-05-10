@@ -16,7 +16,7 @@ export default function BudgetBar({ category, spent, limit, alertLevel }) {
       <View style={styles.header}>
         <Text style={styles.category}>{category}</Text>
         <Text style={[styles.amount, alertLevel === 'danger' && { color: colors.danger }]}>
-          ${formatK(spent)} / ${formatK(limit)}
+          ${formatAmount(spent)}
         </Text>
       </View>
       <View style={styles.trackContainer}>
@@ -39,11 +39,8 @@ export default function BudgetBar({ category, spent, limit, alertLevel }) {
   );
 }
 
-function formatK(value) {
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
-  }
-  return value.toLocaleString('es-AR', { maximumFractionDigits: 0 });
+function formatAmount(value) {
+  return value.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 const styles = StyleSheet.create({

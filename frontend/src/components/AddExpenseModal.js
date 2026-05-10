@@ -7,33 +7,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../theme';
 
-function parseArgentineAmount(str) {
-  const s = str.trim();
-  const hasComma = s.includes(',');
-  const hasDot = s.includes('.');
-
-  if (hasComma && hasDot) {
-    // Formato AR: 1.500,50 — el punto es separador de miles, la coma es decimal
-    return parseFloat(s.replace(/\./g, '').replace(',', '.'));
-  }
-
-  if (hasComma && !hasDot) {
-    const afterComma = s.split(',')[1] || '';
-    // Si hay exactamente 3 dígitos tras la coma → separador de miles: 1,500 → 1500
-    if (afterComma.length === 3) {
-      return parseFloat(s.replace(',', ''));
-    }
-    // Sino → decimal europeo: 1500,50 → 1500.50
-    return parseFloat(s.replace(',', '.'));
-  }
-
-  if (!hasComma && hasDot) {
-    // Decimal estándar: 1500.50
-    return parseFloat(s);
-  }
-
-  // Sin separadores: 1500
-  return parseFloat(s);
+function formatWithDots(digits) {
+  if (!digits) return '';
+  return parseInt(digits, 10).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 }
 
 const CATEGORIES = [
@@ -49,18 +25,22 @@ const CATEGORIES = [
 ];
 
 export default function AddExpenseModal({ visible, onClose, onSubmit }) {
-  const [amount, setAmount] = useState('');
+  const [rawAmount, setRawAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const handleAmountChange = (text) => {
+    setRawAmount(text.replace(/\D/g, ''));
+  };
+
   const handleSubmit = async () => {
-    if (!amount || !description) {
+    if (!rawAmount || !description) {
       Alert.alert('Campos requeridos', 'Ingresá el monto y una descripción.');
       return;
     }
 
-    const parsedAmount = parseArgentineAmount(amount);
+    const parsedAmount = parseInt(rawAmount, 10);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Monto inválido', 'Ingresá un monto válido.');
       return;
@@ -85,7 +65,7 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
   };
 
   const resetForm = () => {
-    setAmount('');
+    setRawAmount('');
     setDescription('');
     setSelectedCategory(null);
   };
@@ -122,8 +102,8 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
                 placeholder="0"
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
-                value={amount}
-                onChangeText={setAmount}
+                value={formatWithDots(rawAmount)}
+                onChangeText={handleAmountChange}
                 autoFocus
               />
             </View>

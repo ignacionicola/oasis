@@ -7,31 +7,26 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../theme';
 
-function parseAmount(str) {
-  const s = str.trim();
-  const hasComma = s.includes(',');
-  const hasDot = s.includes('.');
-  if (hasComma && hasDot) return parseFloat(s.replace(/\./g, '').replace(',', '.'));
-  if (hasComma) {
-    const afterComma = s.split(',')[1] || '';
-    return afterComma.length === 3
-      ? parseFloat(s.replace(',', ''))
-      : parseFloat(s.replace(',', '.'));
-  }
-  return parseFloat(s);
+function formatWithDots(digits) {
+  if (!digits) return '';
+  return parseInt(digits, 10).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 }
 
 export default function AddIncomeModal({ visible, onClose, onSubmit }) {
-  const [amount, setAmount] = useState('');
+  const [rawAmount, setRawAmount] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleAmountChange = (text) => {
+    setRawAmount(text.replace(/\D/g, ''));
+  };
+
   const handleSubmit = async () => {
-    if (!amount) {
+    if (!rawAmount) {
       Alert.alert('Campo requerido', 'Ingresá el monto.');
       return;
     }
-    const parsedAmount = parseAmount(amount);
+    const parsedAmount = parseInt(rawAmount, 10);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Monto inválido', 'Ingresá un monto válido.');
       return;
@@ -43,7 +38,7 @@ export default function AddIncomeModal({ visible, onClose, onSubmit }) {
         description: description.trim() || null,
         date: new Date().toISOString().split('T')[0],
       });
-      setAmount('');
+      setRawAmount('');
       setDescription('');
       onClose();
     } catch (error) {
@@ -82,8 +77,8 @@ export default function AddIncomeModal({ visible, onClose, onSubmit }) {
               placeholder="0"
               placeholderTextColor={colors.textTertiary}
               keyboardType="numeric"
-              value={amount}
-              onChangeText={setAmount}
+              value={formatWithDots(rawAmount)}
+              onChangeText={handleAmountChange}
               autoFocus
             />
           </View>

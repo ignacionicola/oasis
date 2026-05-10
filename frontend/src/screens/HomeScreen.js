@@ -144,6 +144,16 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* Botón agregar ingreso */}
+      <TouchableOpacity
+        style={styles.addIncomeButton}
+        onPress={() => setIncomesModalVisible(true)}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons name="add" size={15} color={colors.textSecondary} />
+        <Text style={styles.addIncomeText}>Agregar ingreso</Text>
+      </TouchableOpacity>
+
       {/* Presupuestos */}
       {summary?.budget_status?.length > 0 && (
         <View style={styles.section}>
@@ -309,6 +319,20 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: -2,
     marginTop: spacing.xs,
+  },
+  addIncomeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  addIncomeText: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   heroMeta: {
     flexDirection: 'row',
