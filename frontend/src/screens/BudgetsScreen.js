@@ -72,11 +72,10 @@ export default function BudgetsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
       {error && (
         <ErrorBanner
           message={error}
@@ -194,7 +193,7 @@ export default function BudgetsScreen() {
           </Text>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
