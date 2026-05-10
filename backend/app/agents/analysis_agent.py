@@ -53,7 +53,7 @@ class AnalysisAgent:
             category = force_category
             confidence = 1.0
         else:
-            cat_result = await categorize_expense(normalized.description)
+            cat_result = categorize_expense(normalized.description)
             category = cat_result["category"]
             confidence = cat_result["confidence"]
 
