@@ -103,6 +103,28 @@ export const shadows = {
   },
 };
 
+export const darkColors = {
+  primary: '#1D9E75',
+  primaryLight: '#0D3D2E',
+  primaryDark: '#15785A',
+  accent: '#D4A843',
+  accentLight: '#2D2010',
+  background: '#0A1628',
+  surface: '#111F35',
+  surfaceElevated: '#1A2D45',
+  textPrimary: '#F0F4F8',
+  textSecondary: '#8E9BB3',
+  textTertiary: '#5A6B82',
+  textInverse: '#0A1628',
+  categories: colors.categories,
+  success: '#1D9E75',
+  warning: '#D4A843',
+  danger: '#E05555',
+  info: '#4B9FE1',
+  border: '#1E3050',
+  borderLight: '#162540',
+};
+
 export const categoryIcons = {
   Comida: 'restaurant',
   Transporte: 'directions-car',

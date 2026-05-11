@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     database_url: str = "sqlite:///./oasis.db"
-    anthropic_api_key: str = ""
 
     # Categorías predefinidas para gastos
     expense_categories: list[str] = [
@@ -34,6 +33,8 @@ class Settings(BaseSettings):
         "Educación": 50000,
         "Otros": 30000,
     }
+
+    gemini_api_key: str = ""
 
     class Config:
         env_file = ".env"

@@ -78,11 +78,12 @@ def list_expenses(
     month: int | None = Query(None, ge=1, le=12),
     year: int | None = Query(None, ge=2020),
     category: str | None = None,
+    search: str | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Lista gastos con filtros opcionales por mes, año y categoría."""
+    """Lista gastos con filtros opcionales por mes, año, categoría y búsqueda."""
     query = db.query(Expense).filter(Expense.is_duplicate == False)
 
     if month:
@@ -91,6 +92,8 @@ def list_expenses(
         query = query.filter(extract("year", Expense.date) == year)
     if category:
         query = query.filter(Expense.category == category)
+    if search:
+        query = query.filter(Expense.description.ilike(f"%{search}%"))
 
     expenses = (
         query.order_by(Expense.date.desc(), Expense.created_at.desc())

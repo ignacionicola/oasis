@@ -1,21 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   Modal, StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius } from '../theme';
+import useTheme from '../theme/useTheme';
+import { useSettings } from '../context/SettingsContext';
+import { formatCurrency } from '../utils/currency';
+import useTranslation from '../i18n';
 import api from '../services/api';
 import AddIncomeModal from './AddIncomeModal';
 
-const MONTH_NAMES = {
-  1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
-  5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
-  9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
-};
-
 export default function IncomesModal({ visible, month, year, onClose, onUpdate }) {
+  const colors = useTheme();
+  const { settings } = useSettings();
+  const { currency } = settings;
+  const t = useTranslation();
   const [incomes, setIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -38,12 +40,12 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
 
   const handleDelete = (income) => {
     Alert.alert(
-      'Eliminar ingreso',
-      `¿Eliminar ingreso de $${formatAmount(income.amount)}?`,
+      t.incomes.confirmDelete,
+      t.incomes.confirmDeleteMsg,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t.incomes.cancel, style: 'cancel' },
         {
-          text: 'Eliminar',
+          text: t.incomes.delete,
           style: 'destructive',
           onPress: async () => {
             try {
@@ -65,12 +67,101 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
     onUpdate();
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    centered: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    itemLeft: {
+      flex: 1,
+      gap: 3,
+    },
+    itemAmount: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.primary,
+      letterSpacing: -0.5,
+    },
+    itemDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    itemDate: {
+      fontSize: 12,
+      color: colors.textTertiary,
+    },
+    deleteButton: {
+      padding: spacing.xs,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.borderLight,
+      marginLeft: spacing.lg,
+    },
+    emptyState: {
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    emptyText: {
+      fontSize: 15,
+      color: colors.textTertiary,
+      fontWeight: '500',
+    },
+    footer: {
+      padding: spacing.lg,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.primary,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+    },
+    addButtonText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  }), [colors]);
+
   const renderItem = ({ item }) => (
     <View style={styles.item}>
       <View style={styles.itemLeft}>
-        <Text style={styles.itemAmount}>${formatAmount(item.amount)}</Text>
+        <Text style={styles.itemAmount}>{formatCurrency(item.amount, currency)}</Text>
         <Text style={styles.itemDescription}>
-          {item.description || 'Sin descripción'}
+          {item.description || t.incomes.noDescription}
         </Text>
         <Text style={styles.itemDate}>{formatDate(item.date)}</Text>
       </View>
@@ -92,17 +183,15 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>
-            Ingresos de {MONTH_NAMES[month] || ''}
+            {t.incomes.title} {t.months[month] || ''}
           </Text>
           <TouchableOpacity onPress={onClose} hitSlop={12}>
             <MaterialIcons name="close" size={24} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
 
-        {/* Lista */}
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator color={colors.primary} />
@@ -117,13 +206,12 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <MaterialIcons name="savings" size={48} color={colors.textTertiary} />
-                <Text style={styles.emptyText}>No hay ingresos este mes</Text>
+                <Text style={styles.emptyText}>{t.incomes.noIncomes}</Text>
               </View>
             }
           />
         )}
 
-        {/* Botón fijo abajo */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.addButton}
@@ -131,7 +219,7 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
             activeOpacity={0.8}
           >
             <MaterialIcons name="add" size={20} color={colors.textInverse} />
-            <Text style={styles.addButtonText}>Agregar ingreso</Text>
+            <Text style={styles.addButtonText}>{t.incomes.addIncome}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -145,13 +233,6 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
   );
 }
 
-function formatAmount(amount) {
-  return amount.toLocaleString('es-AR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
-
 function formatDate(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('es-AR', {
@@ -160,92 +241,3 @@ function formatDate(dateStr) {
     month: 'long',
   });
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  itemLeft: {
-    flex: 1,
-    gap: 3,
-  },
-  itemAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: -0.5,
-  },
-  itemDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  itemDate: {
-    fontSize: 12,
-    color: colors.textTertiary,
-  },
-  deleteButton: {
-    padding: spacing.xs,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginLeft: spacing.lg,
-  },
-  emptyState: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: colors.textTertiary,
-    fontWeight: '500',
-  },
-  footer: {
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

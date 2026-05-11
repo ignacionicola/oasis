@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   Modal, StyleSheet, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '../theme';
+import * as ImagePicker from 'expo-image-picker';
+import { spacing, borderRadius } from '../theme';
+import useTheme from '../theme/useTheme';
+import { useSettings } from '../context/SettingsContext';
+import useTranslation from '../i18n';
+import api from '../services/api';
 
 function formatWithDots(digits) {
   if (!digits) return '';
@@ -25,10 +30,58 @@ const CATEGORIES = [
 ];
 
 export default function AddExpenseModal({ visible, onClose, onSubmit }) {
+  const colors = useTheme();
+  const { settings } = useSettings();
+  const { currency } = settings;
+  const t = useTranslation();
   const [rawAmount, setRawAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  const processScanResult = async (uri) => {
+    setScanning(true);
+    try {
+      const result = await api.scanTicket(uri);
+      if (result.amount > 0) {
+        setRawAmount(String(Math.round(result.amount)));
+      }
+      if (result.description !== '') {
+        setDescription(result.description);
+      }
+      if (result.confidence < 0.6) {
+        Alert.alert('', t.addExpense.lowConfidence);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleScanTicket = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    await processScanResult(result.assets[0].uri);
+  };
+
+  const handleOpenCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    await processScanResult(result.assets[0].uri);
+  };
 
   const handleAmountChange = (text) => {
     setRawAmount(text.replace(/\D/g, ''));
@@ -36,13 +89,13 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
 
   const handleSubmit = async () => {
     if (!rawAmount || !description) {
-      Alert.alert('Campos requeridos', 'Ingresá el monto y una descripción.');
+      Alert.alert(t.addExpense.requiredFields, t.addExpense.requiredFieldsMsg);
       return;
     }
 
     const parsedAmount = parseInt(rawAmount, 10);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Monto inválido', 'Ingresá un monto válido.');
+      Alert.alert(t.addExpense.invalidAmount, t.addExpense.invalidAmountMsg);
       return;
     }
 
@@ -51,7 +104,7 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
       await onSubmit({
         amount: parsedAmount,
         description: description.trim(),
-        category: selectedCategory, // null = auto-categorizar
+        category: selectedCategory,
         date: new Date().toISOString().split('T')[0],
         source: 'manual',
       });
@@ -70,6 +123,139 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
     setSelectedCategory(null);
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(10, 22, 40, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xxl,
+      maxHeight: '90%',
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    scanButton: {
+      alignItems: 'center',
+      gap: 2,
+    },
+    scanButtonLabel: {
+      fontSize: 11,
+      color: colors.textTertiary,
+    },
+    title: {
+      flex: 1,
+      fontSize: 20,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      textAlign: 'center',
+    },
+    amountContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.lg,
+      gap: spacing.xs,
+    },
+    currencySign: {
+      fontSize: 32,
+      fontWeight: '300',
+      color: colors.textTertiary,
+    },
+    amountInput: {
+      fontSize: 48,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      minWidth: 120,
+      textAlign: 'center',
+      letterSpacing: -2,
+    },
+    field: {
+      marginBottom: spacing.lg,
+    },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+      letterSpacing: 0.3,
+    },
+    optionalLabel: {
+      fontWeight: '400',
+      color: colors.textTertiary,
+      fontStyle: 'italic',
+    },
+    textInput: {
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontSize: 16,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    categoryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    categoryChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    categoryChipText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    submitButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.primary,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      marginTop: spacing.md,
+    },
+    submitButtonDisabled: {
+      opacity: 0.6,
+    },
+    submitText: {
+      color: colors.textInverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  }), [colors]);
+
   return (
     <Modal
       visible={visible}
@@ -82,21 +268,36 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
         style={styles.overlay}
       >
         <View style={styles.sheet}>
-          {/* Handle */}
           <View style={styles.handle} />
 
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Nuevo gasto</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.scanButton} onPress={handleOpenCamera}>
+                {scanning ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <MaterialIcons name="photo-camera" size={24} color={colors.primary} />
+                )}
+                <Text style={styles.scanButtonLabel}>{t.addExpense.openCamera}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.scanButton} onPress={handleScanTicket}>
+                {scanning ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <MaterialIcons name="document-scanner" size={24} color={colors.primary} />
+                )}
+                <Text style={styles.scanButtonLabel}>{t.addExpense.scanTicket}</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.title}>{t.addExpense.title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
               <MaterialIcons name="close" size={24} color={colors.textTertiary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Monto */}
             <View style={styles.amountContainer}>
-              <Text style={styles.currencySign}>$</Text>
+              <Text style={styles.currencySign}>{currency.symbol}</Text>
               <TextInput
                 style={styles.amountInput}
                 placeholder="0"
@@ -108,12 +309,11 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
               />
             </View>
 
-            {/* Descripción */}
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>¿En qué gastaste?</Text>
+              <Text style={styles.fieldLabel}>{t.addExpense.placeholder}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Ej: Compras en el super"
+                placeholder={t.addExpense.example}
                 placeholderTextColor={colors.textTertiary}
                 value={description}
                 onChangeText={setDescription}
@@ -121,12 +321,11 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
               />
             </View>
 
-            {/* Categoría (opcional) */}
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>
-                Categoría{' '}
+                {t.addExpense.category}{' '}
                 <Text style={styles.optionalLabel}>
-                  {selectedCategory ? '' : '(se detecta automáticamente)'}
+                  {selectedCategory ? '' : t.addExpense.autoDetect}
                 </Text>
               </Text>
               <View style={styles.categoryGrid}>
@@ -164,7 +363,6 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
             </View>
           </ScrollView>
 
-          {/* Botón guardar */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
@@ -176,7 +374,7 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
             ) : (
               <>
                 <MaterialIcons name="check" size={20} color={colors.textInverse} />
-                <Text style={styles.submitText}>Guardar gasto</Text>
+                <Text style={styles.submitText}>{t.addExpense.save}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -185,122 +383,3 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(10, 22, 40, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-    maxHeight: '90%',
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.xs,
-  },
-  currencySign: {
-    fontSize: 32,
-    fontWeight: '300',
-    color: colors.textTertiary,
-  },
-  amountInput: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    minWidth: 120,
-    textAlign: 'center',
-    letterSpacing: -2,
-  },
-  field: {
-    marginBottom: spacing.lg,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    letterSpacing: 0.3,
-  },
-  optionalLabel: {
-    fontWeight: '400',
-    color: colors.textTertiary,
-    fontStyle: 'italic',
-  },
-  textInput: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryChipText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.md,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

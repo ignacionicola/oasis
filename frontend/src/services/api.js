@@ -5,7 +5,7 @@
  * testees desde un dispositivo físico.
  */
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8000/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.79:8000/api/v1';
 
 class ApiService {
   async request(endpoint, options = {}) {
@@ -51,11 +51,12 @@ class ApiService {
     });
   }
 
-  async getExpenses({ month, year, category, limit = 50 } = {}) {
+  async getExpenses({ month, year, category, search, limit = 50 } = {}) {
     const params = new URLSearchParams();
     if (month) params.append('month', month);
     if (year) params.append('year', year);
     if (category) params.append('category', category);
+    if (search) params.append('search', search);
     params.append('limit', limit);
 
     return this.request(`/expenses/?${params.toString()}`);
@@ -70,6 +71,31 @@ class ApiService {
 
   async deleteExpense(id) {
     return this.request(`/expenses/${id}`, { method: 'DELETE' });
+  }
+
+  async scanTicket(imageUri) {
+    const formData = new FormData();
+    formData.append('image', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'ticket.jpg',
+    });
+    try {
+      const response = await fetch(`${BASE_URL}/scanner/ticket`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Error ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      if (error.message === 'Network request failed') {
+        throw new Error('No se pudo conectar al servidor. ¿Está corriendo el backend?');
+      }
+      throw error;
+    }
   }
 
   // ── Budgets ──

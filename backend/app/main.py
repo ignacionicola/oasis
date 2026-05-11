@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
 from app.config import get_settings
-from app.routes import expenses, budgets, dashboard, incomes
+from app.routes import expenses, budgets, dashboard, incomes, scanner
 
 settings = get_settings()
 
@@ -41,6 +41,7 @@ app.include_router(expenses.router, prefix="/api/v1")
 app.include_router(budgets.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(incomes.router, prefix="/api/v1")
+app.include_router(scanner.router, prefix="/api/v1")
 
 
 @app.get("/")

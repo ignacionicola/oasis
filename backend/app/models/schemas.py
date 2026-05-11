@@ -100,6 +100,7 @@ class BudgetStatus(BaseModel):
 
 class MonthSummary(BaseModel):
     month: str
+    month_number: int
     year: int
     total_spent: float
     total_income: float

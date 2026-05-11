@@ -87,6 +87,7 @@ def get_month_summary(
 
     return MonthSummary(
         month=MONTH_NAMES_ES[month],
+        month_number=month,
         year=year,
         total_spent=round(total_spent, 2),
         total_income=total_income,

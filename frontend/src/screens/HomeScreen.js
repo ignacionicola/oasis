@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, RefreshControl, Alert, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius, shadows } from '../theme';
+import useTheme from '../theme/useTheme';
+import { useSettings } from '../context/SettingsContext';
+import { formatCurrency } from '../utils/currency';
+import useTranslation from '../i18n';
 import api from '../services/api';
 import ExpenseCard from '../components/ExpenseCard';
 import BudgetBar from '../components/BudgetBar';
@@ -15,6 +19,10 @@ import ExpenseDetailModal from '../components/ExpenseDetailModal';
 import ErrorBanner from '../components/ErrorBanner';
 
 export default function HomeScreen() {
+  const colors = useTheme();
+  const { settings } = useSettings();
+  const { currency } = settings;
+  const t = useTranslation();
   const [summary, setSummary] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +60,6 @@ export default function HomeScreen() {
   const handleAddExpense = async (expenseData) => {
     const result = await api.createExpense(expenseData);
 
-    // Mostrar alerta de duplicado si aplica
     if (result.duplicate_warning) {
       Alert.alert(
         'Posible duplicado',
@@ -61,7 +68,6 @@ export default function HomeScreen() {
       );
     }
 
-    // Mostrar alerta de presupuesto si aplica
     if (result.alert) {
       const alertTitle =
         result.alert.alert_level === 'danger' ? '⚠️ Presupuesto superado' : '⚡ Atención';
@@ -81,18 +87,172 @@ export default function HomeScreen() {
     }
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    topBar: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xxl,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    appName: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.primary,
+      letterSpacing: -0.5,
+    },
+    monthLabel: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      marginTop: 2,
+    },
+    heroCard: {
+      margin: spacing.lg,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      ...shadows.md,
+    },
+    heroLabel: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.textTertiary,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+    },
+    heroAmount: {
+      fontSize: 40,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: -2,
+      marginTop: spacing.xs,
+    },
+    addIncomeButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      alignSelf: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      marginTop: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    addIncomeText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    heroMeta: {
+      flexDirection: 'row',
+      marginTop: spacing.lg,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    heroStat: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    heroStatValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    heroStatLabel: {
+      fontSize: 11,
+      color: colors.textTertiary,
+      marginTop: 2,
+    },
+    heroDivider: {
+      width: 1,
+      backgroundColor: colors.borderLight,
+    },
+    section: {
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    budgetCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      gap: spacing.md,
+      ...shadows.sm,
+    },
+    budgetDivider: {
+      height: 1,
+      backgroundColor: colors.borderLight,
+    },
+    listHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    listCount: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      fontWeight: '500',
+    },
+    listContent: {
+      paddingBottom: 100,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.borderLight,
+      marginLeft: 82,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: spacing.xxl * 2,
+      gap: spacing.sm,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: colors.textSecondary,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      textAlign: 'center',
+    },
+    fab: {
+      position: 'absolute',
+      bottom: spacing.xl,
+      right: spacing.lg,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.md,
+      elevation: 5,
+    },
+  }), [colors]);
+
   const renderHeader = () => (
     <View>
-      {/* Hero Card */}
       <View style={styles.heroCard}>
         {summary?.total_income > 0 ? (
           <>
-            <Text style={styles.heroLabel}>Disponible este mes</Text>
+            <Text style={styles.heroLabel}>{t.home.availableThisMonth}</Text>
             <Text style={[
               styles.heroAmount,
               { color: summary.available >= 0 ? colors.primary : colors.danger },
             ]}>
-              ${formatAmount(Math.abs(summary.available))}
+              {formatCurrency(Math.abs(summary.available), currency)}
             </Text>
             <View style={styles.heroMeta}>
               <TouchableOpacity
@@ -101,63 +261,61 @@ export default function HomeScreen() {
                 activeOpacity={0.6}
               >
                 <Text style={styles.heroStatValue}>
-                  ${formatAmount(summary.total_income)}
+                  {formatCurrency(summary.total_income, currency)}
                 </Text>
                 <Text style={[styles.heroStatLabel, { color: colors.primary }]}>
-                  ingresos ›
+                  {t.home.income}
                 </Text>
               </TouchableOpacity>
               <View style={styles.heroDivider} />
               <View style={styles.heroStat}>
                 <Text style={styles.heroStatValue}>
-                  ${formatAmount(summary.total_spent)}
+                  {formatCurrency(summary.total_spent, currency)}
                 </Text>
-                <Text style={styles.heroStatLabel}>gastado</Text>
+                <Text style={styles.heroStatLabel}>{t.home.spent}</Text>
               </View>
             </View>
           </>
         ) : (
           <>
-            <Text style={styles.heroLabel}>Gastaste este mes</Text>
+            <Text style={styles.heroLabel}>{t.home.spentThisMonth}</Text>
             <Text style={styles.heroAmount}>
-              ${summary ? formatAmount(summary.total_spent) : '—'}
+              {summary ? formatCurrency(summary.total_spent, currency) : '—'}
             </Text>
             <View style={styles.heroMeta}>
               <View style={styles.heroStat}>
                 <Text style={styles.heroStatValue}>{summary?.expense_count || 0}</Text>
-                <Text style={styles.heroStatLabel}>gastos</Text>
+                <Text style={styles.heroStatLabel}>{t.home.expenses}</Text>
               </View>
               <View style={styles.heroDivider} />
               <View style={styles.heroStat}>
                 <Text style={styles.heroStatValue}>
-                  ${summary ? formatAmount(summary.daily_average) : '—'}
+                  {summary ? formatCurrency(summary.daily_average, currency) : '—'}
                 </Text>
-                <Text style={styles.heroStatLabel}>por día</Text>
+                <Text style={styles.heroStatLabel}>{t.home.perDay}</Text>
               </View>
               <View style={styles.heroDivider} />
               <View style={styles.heroStat}>
                 <Text style={styles.heroStatValue}>{summary?.top_category || '—'}</Text>
-                <Text style={styles.heroStatLabel}>top categoría</Text>
+                <Text style={styles.heroStatLabel}>{t.home.topCategory}</Text>
               </View>
             </View>
           </>
         )}
       </View>
 
-      {/* Botón agregar ingreso */}
       <TouchableOpacity
         style={styles.addIncomeButton}
         onPress={() => setIncomesModalVisible(true)}
         activeOpacity={0.7}
       >
         <MaterialIcons name="add" size={15} color={colors.textSecondary} />
-        <Text style={styles.addIncomeText}>Agregar ingreso</Text>
+        <Text style={styles.addIncomeText}>{t.home.addIncome}</Text>
       </TouchableOpacity>
 
-      {/* Presupuestos */}
       {summary?.budget_status?.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Presupuestos del mes</Text>
+          <Text style={styles.sectionTitle}>{t.home.monthlyBudgets}</Text>
           <View style={styles.budgetCard}>
             {summary.budget_status
               .filter(b => b.spent > 0)
@@ -178,9 +336,8 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Título de lista */}
       <View style={styles.listHeader}>
-        <Text style={styles.sectionTitle}>Últimos gastos</Text>
+        <Text style={styles.sectionTitle}>{t.home.latestExpenses}</Text>
         <Text style={styles.listCount}>{expenses.length}</Text>
       </View>
     </View>
@@ -197,17 +354,15 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* Top Bar */}
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.appName}>Oasis Finance</Text>
+          <Text style={styles.appName}>{t.home.appName}</Text>
           <Text style={styles.monthLabel}>
-            {summary?.month || ''} {summary?.year || ''}
+            {summary?.month_number ? t.months[summary.month_number] : ''} {summary?.year || ''}
           </Text>
         </View>
       </View>
 
-      {/* Content */}
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.id.toString()}
@@ -219,10 +374,8 @@ export default function HomeScreen() {
           !loading && (
             <View style={styles.emptyState}>
               <MaterialIcons name="receipt-long" size={48} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>No hay gastos este mes</Text>
-              <Text style={styles.emptySubtext}>
-                Tocá el botón + para agregar tu primer gasto
-              </Text>
+              <Text style={styles.emptyText}>{t.home.noExpenses}</Text>
+              <Text style={styles.emptySubtext}>{t.home.noExpensesSubtext}</Text>
             </View>
           )
         }
@@ -233,7 +386,6 @@ export default function HomeScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setModalVisible(true)}
@@ -242,7 +394,6 @@ export default function HomeScreen() {
         <MaterialIcons name="add" size={28} color={colors.textInverse} />
       </TouchableOpacity>
 
-      {/* Modal lista de ingresos */}
       <IncomesModal
         visible={incomesModalVisible}
         month={new Date().getMonth() + 1}
@@ -251,14 +402,12 @@ export default function HomeScreen() {
         onUpdate={loadData}
       />
 
-      {/* Modal nuevo gasto */}
       <AddExpenseModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={handleAddExpense}
       />
 
-      {/* Modal detalle gasto */}
       <ExpenseDetailModal
         expense={selectedExpense}
         onClose={() => setSelectedExpense(null)}
@@ -267,165 +416,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-function formatAmount(amount) {
-  return amount.toLocaleString('es-AR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  topBar: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  appName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: -0.5,
-  },
-  monthLabel: {
-    fontSize: 14,
-    color: colors.textTertiary,
-    marginTop: 2,
-  },
-  heroCard: {
-    margin: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    ...shadows.md,
-  },
-  heroLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.textTertiary,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  heroAmount: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    letterSpacing: -2,
-    marginTop: spacing.xs,
-  },
-  addIncomeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    alignSelf: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  addIncomeText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  heroMeta: {
-    flexDirection: 'row',
-    marginTop: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-  },
-  heroStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  heroStatValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  heroStatLabel: {
-    fontSize: 11,
-    color: colors.textTertiary,
-    marginTop: 2,
-  },
-  heroDivider: {
-    width: 1,
-    backgroundColor: colors.borderLight,
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  budgetCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-    ...shadows.sm,
-  },
-  budgetDivider: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-  },
-  listHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  listCount: {
-    fontSize: 14,
-    color: colors.textTertiary,
-    fontWeight: '500',
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginLeft: 82,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl * 2,
-    gap: spacing.sm,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textTertiary,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    right: spacing.lg,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.md,
-    elevation: 5,
-  },
-});

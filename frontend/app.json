@@ -14,7 +14,11 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#0A1628"
       },
-      "package": "com.oasisfinance.app"
+      "package": "com.oasisfinance.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "plugins": [
       "expo-asset"
