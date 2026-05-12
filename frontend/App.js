@@ -7,14 +7,16 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform, View } from 'react-native';
+import { Platform, View, ActivityIndicator } from 'react-native';
 import { SettingsProvider } from './src/context/SettingsContext';
 import { useSettings } from './src/context/SettingsContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import useTranslation from './src/i18n';
 import HomeScreen from './src/screens/HomeScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import AuthScreen from './src/screens/AuthScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,6 +31,7 @@ const TAB_ICONS = {
 
 function AppNavigator() {
   const { settings, loaded } = useSettings();
+  const { user, loading: authLoading } = useAuth();
   const t = useTranslation();
   const isDark = settings.theme === 'dark';
 
@@ -42,8 +45,25 @@ function AppNavigator() {
   const bgColor = isDark ? '#111F35' : '#FFFFFF';
 
   const onLayoutReady = useCallback(async () => {
-    if (loaded) await SplashScreen.hideAsync();
-  }, [loaded]);
+    if (loaded && !authLoading) await SplashScreen.hideAsync();
+  }, [loaded, authLoading]);
+
+  if (authLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: bgColor, justifyContent: 'center', alignItems: 'center' }} onLayout={onLayoutReady}>
+        <ActivityIndicator size="large" color={isDark ? '#1D9E75' : '#0D6B4F'} />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={{ flex: 1, backgroundColor: bgColor }} onLayout={onLayoutReady}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <AuthScreen />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }} onLayout={onLayoutReady}>
@@ -102,8 +122,10 @@ function ThemedRoot() {
 
 export default function App() {
   return (
-    <SettingsProvider>
-      <ThemedRoot />
-    </SettingsProvider>
+    <AuthProvider>
+      <SettingsProvider>
+        <ThemedRoot />
+      </SettingsProvider>
+    </AuthProvider>
   );
 }

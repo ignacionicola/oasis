@@ -1,4 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+
+from app.dependencies import get_current_user
+from app.models import User
 from app.skills.ticket_scanner import scan_ticket
 
 router = APIRouter(prefix="/scanner", tags=["Scanner"])
@@ -7,7 +10,10 @@ _ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 @router.post("/ticket")
-async def scan_ticket_endpoint(image: UploadFile = File(...)):
+async def scan_ticket_endpoint(
+    image: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
     if image.content_type not in _ALLOWED_TYPES:
         raise HTTPException(
             status_code=415,

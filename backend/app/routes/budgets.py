@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Budget
+from app.dependencies import get_current_user
+from app.models import Budget, User
 from app.models.schemas import BudgetCreate, BudgetUpdate, BudgetResponse
 from app.config import get_settings
 
@@ -17,8 +18,11 @@ settings = get_settings()
 
 
 @router.post("/", response_model=BudgetResponse, status_code=201)
-def create_budget(budget_data: BudgetCreate, db: Session = Depends(get_db)):
-    """Crea o actualiza un presupuesto para una categoría."""
+def create_budget(
+    budget_data: BudgetCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     existing = db.query(Budget).filter(Budget.category == budget_data.category).first()
     if existing:
         existing.monthly_limit = budget_data.monthly_limit
@@ -38,8 +42,10 @@ def create_budget(budget_data: BudgetCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[BudgetResponse])
-def list_budgets(db: Session = Depends(get_db)):
-    """Lista todos los presupuestos."""
+def list_budgets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     budgets = db.query(Budget).all()
     return [BudgetResponse.model_validate(b) for b in budgets]
 
@@ -49,8 +55,8 @@ def update_budget(
     category: str,
     update_data: BudgetUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Actualiza el límite de un presupuesto."""
     budget = db.query(Budget).filter(Budget.category == category).first()
     if not budget:
         raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
@@ -63,8 +69,10 @@ def update_budget(
 
 
 @router.post("/init-defaults", status_code=201)
-def init_default_budgets(db: Session = Depends(get_db)):
-    """Inicializa los presupuestos por defecto (para setup inicial)."""
+def init_default_budgets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     created = []
     for category, limit in settings.default_budgets.items():
         existing = db.query(Budget).filter(Budget.category == category).first()

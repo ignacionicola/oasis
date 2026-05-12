@@ -36,6 +36,9 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
 
+    secret_key: str = "changeme-in-production"
+    access_token_expire_days: int = 30
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

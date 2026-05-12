@@ -1,27 +1,43 @@
-/**
- * API Service — Comunicación con el backend FastAPI.
- *
- * Cambiá BASE_URL a la IP de tu máquina cuando
- * testees desde un dispositivo físico.
- */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.79:8000/api/v1';
 
 class ApiService {
+  async getToken() {
+    return await AsyncStorage.getItem('oasis_token');
+  }
+
+  async setToken(token) {
+    await AsyncStorage.setItem('oasis_token', token);
+  }
+
+  async removeToken() {
+    await AsyncStorage.removeItem('oasis_token');
+  }
+
   async request(endpoint, options = {}) {
     const url = `${BASE_URL}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
+    const token = await this.getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const config = {
-      headers: { 'Content-Type': 'application/json' },
       ...options,
+      headers: { ...headers, ...(options.headers || {}) },
       signal: controller.signal,
     };
 
     try {
       const response = await fetch(url, config);
       clearTimeout(timeoutId);
+
+      if (response.status === 401) {
+        await this.removeToken();
+        throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -40,6 +56,30 @@ class ApiService {
       }
       throw error;
     }
+  }
+
+  // ── Auth ──
+
+  async register(email, password) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async login(email, password) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async getMe() {
+    return this.request('/auth/me');
+  }
+
+  async logout() {
+    await this.removeToken();
   }
 
   // ── Expenses ──
@@ -74,17 +114,25 @@ class ApiService {
   }
 
   async scanTicket(imageUri) {
+    const token = await this.getToken();
     const formData = new FormData();
     formData.append('image', {
       uri: imageUri,
       type: 'image/jpeg',
       name: 'ticket.jpg',
     });
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     try {
       const response = await fetch(`${BASE_URL}/scanner/ticket`, {
         method: 'POST',
+        headers,
         body: formData,
       });
+      if (response.status === 401) {
+        await this.removeToken();
+        throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+      }
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.detail || `Error ${response.status}`);

@@ -78,6 +78,7 @@ class AnalysisAgent:
         analysis: dict,
         db: Session,
         is_duplicate: bool = False,
+        user_id: int | None = None,
     ) -> Expense:
         """Guarda el gasto analizado en la base de datos."""
         expense = Expense(
@@ -88,6 +89,7 @@ class AnalysisAgent:
             source=normalized.source,
             is_duplicate=is_duplicate,
             confidence=analysis["confidence"],
+            user_id=user_id,
         )
 
         db.add(expense)

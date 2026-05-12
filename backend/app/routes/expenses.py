@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import extract, func, and_
 
 from app.database import get_db
-from app.models import Expense
+from app.dependencies import get_current_user
+from app.models import Expense, User
 from app.models.schemas import (
     ExpenseCreate,
     ExpenseUpdate,
@@ -33,37 +34,27 @@ async def create_expense(
     expense_data: ExpenseCreate,
     force_save: bool = Query(False, description="Guardar aunque sea duplicado"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """
-    Crea un nuevo gasto ejecutando el pipeline completo:
-    1. Input Agent normaliza la entrada
-    2. Analysis Agent categoriza, detecta duplicados, chequea presupuesto
-    3. Se guarda en la DB
-
-    Si se detecta un posible duplicado, devuelve warning pero guarda igual
-    (a menos que force_save=False y haya duplicado, en cuyo caso marca is_duplicate).
-    """
-    # 1. Input Agent → normalizar
     normalized = await input_agent.process_manual(
         amount=expense_data.amount,
         description=expense_data.description,
         expense_date=expense_data.expense_date,
     )
 
-    # 2. Analysis Agent → categorizar + analizar
     analysis = await analysis_agent.analyze(
         normalized=normalized,
         db=db,
         force_category=expense_data.category,
     )
 
-    # 3. Guardar en DB
     is_dup = bool(analysis["duplicate_warning"]) and not force_save
     expense = analysis_agent.save_expense(
         normalized=normalized,
         analysis=analysis,
         db=db,
         is_duplicate=is_dup,
+        user_id=current_user.id,
     )
 
     return ExpenseWithAlert(
@@ -82,9 +73,12 @@ def list_expenses(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Lista gastos con filtros opcionales por mes, año, categoría y búsqueda."""
-    query = db.query(Expense).filter(Expense.is_duplicate == False)
+    query = db.query(Expense).filter(
+        Expense.is_duplicate == False,
+        Expense.user_id == current_user.id,
+    )
 
     if month:
         query = query.filter(extract("month", Expense.date) == month)
@@ -106,9 +100,15 @@ def list_expenses(
 
 
 @router.get("/{expense_id}", response_model=ExpenseResponse)
-def get_expense(expense_id: int, db: Session = Depends(get_db)):
-    """Obtiene un gasto por ID."""
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+def get_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.user_id == current_user.id,
+    ).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Gasto no encontrado")
     return ExpenseResponse.model_validate(expense)
@@ -119,11 +119,13 @@ def update_expense(
     expense_id: int,
     update_data: ExpenseUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Actualiza un gasto existente."""
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Gasto no encontrado")
+    if expense.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No tenés permiso para modificar este gasto")
 
     update_dict = update_data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():
@@ -135,11 +137,16 @@ def update_expense(
 
 
 @router.delete("/{expense_id}", status_code=204)
-def delete_expense(expense_id: int, db: Session = Depends(get_db)):
-    """Elimina un gasto."""
+def delete_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Gasto no encontrado")
+    if expense.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No tenés permiso para eliminar este gasto")
 
     db.delete(expense)
     db.commit()

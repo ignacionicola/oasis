@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { spacing, borderRadius, shadows } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import useTranslation from '../i18n';
 import SwipeableScreen from '../components/SwipeableScreen';
 
@@ -23,7 +24,15 @@ const LANGUAGES = [
 export default function SettingsScreen({ navigation }) {
   const colors = useTheme();
   const { settings, setTheme, setCurrency, setLanguage } = useSettings();
+  const { user, logout } = useAuth();
   const t = useTranslation();
+
+  const handleLogout = () => {
+    Alert.alert(t.auth.logoutConfirm, t.auth.logoutConfirmMsg, [
+      { text: t.auth.cancel, style: 'cancel' },
+      { text: t.auth.logout, style: 'destructive', onPress: logout },
+    ]);
+  };
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -124,6 +133,26 @@ export default function SettingsScreen({ navigation }) {
       fontWeight: '500',
       color: colors.textPrimary,
     },
+    accountEmail: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    logoutRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      gap: spacing.sm,
+    },
+    logoutText: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: colors.danger,
+    },
     footer: {
       alignItems: 'center',
       paddingVertical: spacing.xxl,
@@ -141,6 +170,15 @@ export default function SettingsScreen({ navigation }) {
         <View style={styles.header}>
           <Text style={styles.title}>{t.settings.title}</Text>
           <Text style={styles.subtitle}>{t.settings.subtitle}</Text>
+        </View>
+
+        <Text style={styles.sectionLabel}>{t.auth.account}</Text>
+        <View style={styles.card}>
+          <Text style={styles.accountEmail}>{user?.email}</Text>
+          <TouchableOpacity style={styles.logoutRow} onPress={handleLogout} activeOpacity={0.7}>
+            <MaterialIcons name="logout" size={20} color={colors.danger} />
+            <Text style={styles.logoutText}>{t.auth.logout}</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionLabel}>{t.settings.appearance}</Text>
