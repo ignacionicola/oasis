@@ -5,6 +5,7 @@ import {
   Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import useTheme from '../theme/useTheme';
 import useTranslation from '../i18n';
 import { spacing, borderRadius } from '../theme';
@@ -19,6 +20,8 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatPassword, setRepeatPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeat, setShowRepeat] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isRegister = mode === 'register';
@@ -61,67 +64,92 @@ export default function AuthScreen() {
     inner: {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.xxl,
-      gap: spacing.md,
+      gap: spacing.lg,
     },
     logo: {
-      fontSize: 36,
+      fontSize: 40,
       fontWeight: '700',
       color: colors.primary,
       letterSpacing: -1,
       textAlign: 'center',
-      marginBottom: spacing.lg,
+      marginBottom: spacing.xs,
     },
     tagline: {
-      fontSize: 14,
+      fontSize: 15,
       color: colors.textTertiary,
       textAlign: 'center',
-      marginTop: -spacing.md,
-      marginBottom: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    fieldGroup: {
+      gap: spacing.xs,
     },
     label: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.textSecondary,
-      marginBottom: 4,
     },
-    input: {
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: borderRadius.md,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm + 2,
-      fontSize: 15,
+    },
+    input: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 16,
       color: colors.textPrimary,
     },
-    inputFocused: {
-      borderColor: colors.primary,
+    eyeButton: {
+      padding: spacing.xs,
     },
     button: {
       backgroundColor: colors.primary,
       borderRadius: borderRadius.md,
-      paddingVertical: spacing.md,
+      paddingVertical: 16,
       alignItems: 'center',
-      marginTop: spacing.sm,
+      marginTop: spacing.xs,
     },
     buttonText: {
       color: '#FFFFFF',
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: '600',
     },
     switchRow: {
       alignItems: 'center',
-      marginTop: spacing.sm,
+      paddingVertical: spacing.sm,
     },
     switchText: {
-      fontSize: 14,
+      fontSize: 15,
       color: colors.textTertiary,
     },
-    switchLink: {
-      color: colors.primary,
-      fontWeight: '600',
-    },
   }), [colors]);
+
+  const PasswordField = ({ label, value, onChange, show, onToggle }) => (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={onChange}
+          secureTextEntry={!show}
+          placeholder="••••••••"
+          placeholderTextColor={colors.textTertiary}
+        />
+        <TouchableOpacity style={styles.eyeButton} onPress={onToggle} hitSlop={8}>
+          <MaterialIcons
+            name={show ? 'visibility' : 'visibility-off'}
+            size={22}
+            color={colors.textTertiary}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -131,47 +159,43 @@ export default function AuthScreen() {
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.inner}>
-            <Text style={styles.logo}>Finanzas</Text>
-            <Text style={styles.tagline}>Tu economía personal, ordenada</Text>
-
             <View>
+              <Text style={styles.logo}>Finanzas</Text>
+              <Text style={styles.tagline}>Tu economía personal, ordenada</Text>
+            </View>
+
+            <View style={styles.fieldGroup}>
               <Text style={styles.label}>{t.auth.email}</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={colors.textTertiary}
-              />
-            </View>
-
-            <View>
-              <Text style={styles.label}>{t.auth.password}</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="••••••••"
-                placeholderTextColor={colors.textTertiary}
-              />
-            </View>
-
-            {isRegister && (
-              <View>
-                <Text style={styles.label}>{t.auth.repeatPassword}</Text>
+              <View style={styles.inputRow}>
                 <TextInput
                   style={styles.input}
-                  value={repeatPassword}
-                  onChangeText={setRepeatPassword}
-                  secureTextEntry
-                  placeholder="••••••••"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="correo@ejemplo.com"
                   placeholderTextColor={colors.textTertiary}
                 />
               </View>
+            </View>
+
+            <PasswordField
+              label={t.auth.password}
+              value={password}
+              onChange={setPassword}
+              show={showPassword}
+              onToggle={() => setShowPassword(v => !v)}
+            />
+
+            {isRegister && (
+              <PasswordField
+                label={t.auth.repeatPassword}
+                value={repeatPassword}
+                onChange={setRepeatPassword}
+                show={showRepeat}
+                onToggle={() => setShowRepeat(v => !v)}
+              />
             )}
 
             <TouchableOpacity
@@ -194,6 +218,8 @@ export default function AuthScreen() {
                 setMode(isRegister ? 'login' : 'register');
                 setPassword('');
                 setRepeatPassword('');
+                setShowPassword(false);
+                setShowRepeat(false);
               }}
               activeOpacity={0.7}
             >
