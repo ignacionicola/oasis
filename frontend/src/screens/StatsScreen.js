@@ -18,7 +18,7 @@ const screenWidth = Dimensions.get('window').width;
 
 export default function StatsScreen({ navigation }) {
   const colors = useTheme();
-  const { settings } = useSettings();
+  const { settings, dataVersion } = useSettings();
   const { currency } = settings;
   const t = useTranslation();
   const [categories, setCategories] = useState([]);
@@ -42,7 +42,7 @@ export default function StatsScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData, dataVersion]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -21,7 +21,7 @@ import SwipeableScreen from '../components/SwipeableScreen';
 
 export default function HomeScreen({ navigation }) {
   const colors = useTheme();
-  const { settings } = useSettings();
+  const { settings, incrementDataVersion } = useSettings();
   const { currency } = settings;
   const t = useTranslation();
   const [summary, setSummary] = useState(null);
@@ -69,6 +69,7 @@ export default function HomeScreen({ navigation }) {
       );
     }
 
+    incrementDataVersion();
     await loadData();
   };
 
@@ -76,6 +77,7 @@ export default function HomeScreen({ navigation }) {
     try {
       await api.deleteExpense(expense.id);
       setSelectedExpense(null);
+      incrementDataVersion();
       await loadData();
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -395,7 +397,7 @@ export default function HomeScreen({ navigation }) {
         month={new Date().getMonth() + 1}
         year={new Date().getFullYear()}
         onClose={() => setIncomesModalVisible(false)}
-        onUpdate={loadData}
+        onUpdate={() => { incrementDataVersion(); loadData(); }}
       />
 
       <AddExpenseModal

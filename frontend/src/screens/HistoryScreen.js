@@ -30,7 +30,7 @@ const CATEGORIES = [
 
 export default function HistoryScreen({ navigation }) {
   const colors = useTheme();
-  const { settings } = useSettings();
+  const { settings, dataVersion } = useSettings();
   const { currency } = settings;
   const t = useTranslation();
 
@@ -76,7 +76,7 @@ export default function HistoryScreen({ navigation }) {
       }
     });
     return () => { cancelled = true; };
-  }, [selectedMonth, selectedYear, selectedCategory, debouncedSearch]);
+  }, [selectedMonth, selectedYear, selectedCategory, debouncedSearch, dataVersion]);
 
   const prevMonth = () => {
     if (selectedMonth === 1) {
