@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'oasis_settings';
@@ -28,6 +28,7 @@ const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
   const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
@@ -36,6 +37,7 @@ export function SettingsProvider({ children }) {
           dispatch({ type: 'LOAD', payload: JSON.parse(raw) });
         } catch (_) {}
       }
+      setLoaded(true);
     });
   }, []);
 
@@ -48,7 +50,7 @@ export function SettingsProvider({ children }) {
   const setLanguage = (language) => dispatch({ type: 'SET_LANGUAGE', payload: language });
 
   return (
-    <SettingsContext.Provider value={{ settings, setTheme, setCurrency, setLanguage }}>
+    <SettingsContext.Provider value={{ settings, loaded, setTheme, setCurrency, setLanguage }}>
       {children}
     </SettingsContext.Provider>
   );

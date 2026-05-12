@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as NavigationBar from 'expo-navigation-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { Platform, View } from 'react-native';
 import { SettingsProvider } from './src/context/SettingsContext';
 import { useSettings } from './src/context/SettingsContext';
 import useTranslation from './src/i18n';
-
 import HomeScreen from './src/screens/HomeScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+
+SplashScreen.preventAutoHideAsync();
 
 const Tab = createBottomTabNavigator();
 
@@ -23,12 +27,23 @@ const TAB_ICONS = {
 };
 
 function AppNavigator() {
-  const { settings } = useSettings();
+  const { settings, loaded } = useSettings();
   const t = useTranslation();
   const isDark = settings.theme === 'dark';
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+  }, [isDark]);
+
+  const bgColor = isDark ? '#111F35' : '#FFFFFF';
+
+  const onLayoutReady = useCallback(async () => {
+    if (loaded) await SplashScreen.hideAsync();
+  }, [loaded]);
+
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: bgColor }} onLayout={onLayoutReady}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
         <Tab.Navigator
@@ -48,7 +63,6 @@ function AppNavigator() {
               borderTopWidth: 1,
               borderTopColor: isDark ? '#162540' : '#F0F3F7',
               paddingTop: 4,
-              height: 56,
             },
             tabBarLabelStyle: {
               fontSize: 11,
@@ -79,7 +93,7 @@ function AppNavigator() {
           />
         </Tab.Navigator>
       </NavigationContainer>
-    </>
+    </View>
   );
 }
 

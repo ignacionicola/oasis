@@ -18,7 +18,8 @@
       "PowerShell(try { Invoke-RestMethod -Uri \"http://localhost:8000/health\" -TimeoutSec 5 } catch { Write-Output \"ERROR: $\\($_.Exception.Message\\)\" })",
       "PowerShell(try { $r = Invoke-RestMethod -Uri \"http://localhost:8000/health\" -TimeoutSec 5; Write-Host \"OK: $\\($r | ConvertTo-Json\\)\" } catch { Write-Host \"ERROR: $\\($_.Exception.Message\\)\" })",
       "PowerShell(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -match \"Wi-Fi|Ethernet\" -and $_.IPAddress -notmatch \"^169\\\\.\" } | Select-Object IPAddress, InterfaceAlias | Format-Table -AutoSize)",
-      "PowerShell(Stop-Process -Id 24568 -Force -ErrorAction SilentlyContinue)"
+      "PowerShell(Stop-Process -Id 24568 -Force -ErrorAction SilentlyContinue)",
+      "Bash(npx expo *)"
     ]
   }
 }
