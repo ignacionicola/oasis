@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
@@ -5,9 +7,14 @@ from app.config import get_settings
 
 settings = get_settings()
 
+DATABASE_URL = os.getenv("DATABASE_URL", settings.database_url)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+_is_sqlite = DATABASE_URL.startswith("sqlite")
 engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False},  # SQLite específico
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
     echo=settings.debug,
 )
 
