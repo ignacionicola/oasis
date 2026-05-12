@@ -128,29 +128,6 @@ export default function AuthScreen() {
     },
   }), [colors]);
 
-  const PasswordField = ({ label, value, onChange, show, onToggle }) => (
-    <View style={styles.fieldGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={onChange}
-          secureTextEntry={!show}
-          placeholder="••••••••"
-          placeholderTextColor={colors.textTertiary}
-        />
-        <TouchableOpacity style={styles.eyeButton} onPress={onToggle} hitSlop={8}>
-          <MaterialIcons
-            name={show ? 'visibility' : 'visibility-off'}
-            size={22}
-            color={colors.textTertiary}
-          />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -180,22 +157,56 @@ export default function AuthScreen() {
               </View>
             </View>
 
-            <PasswordField
-              label={t.auth.password}
-              value={password}
-              onChange={setPassword}
-              show={showPassword}
-              onToggle={() => setShowPassword(v => !v)}
-            />
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t.auth.password}</Text>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textTertiary}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(v => !v)}
+                  hitSlop={8}
+                >
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={22}
+                    color={colors.textTertiary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {isRegister && (
-              <PasswordField
-                label={t.auth.repeatPassword}
-                value={repeatPassword}
-                onChange={setRepeatPassword}
-                show={showRepeat}
-                onToggle={() => setShowRepeat(v => !v)}
-              />
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>{t.auth.repeatPassword}</Text>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={styles.input}
+                    value={repeatPassword}
+                    onChangeText={setRepeatPassword}
+                    secureTextEntry={!showRepeat}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowRepeat(v => !v)}
+                    hitSlop={8}
+                  >
+                    <MaterialIcons
+                      name={showRepeat ? 'visibility' : 'visibility-off'}
+                      size={22}
+                      color={colors.textTertiary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
 
             <TouchableOpacity
