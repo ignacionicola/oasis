@@ -6,6 +6,7 @@ import { spacing, borderRadius, shadows } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
+import SwipeableScreen from '../components/SwipeableScreen';
 
 const CURRENCIES = [
   { code: 'ARS', symbol: '$',   name: 'Peso argentino' },
@@ -19,7 +20,7 @@ const LANGUAGES = [
   { code: 'en', name: 'English' },
 ];
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   const colors = useTheme();
   const { settings, setTheme, setCurrency, setLanguage } = useSettings();
   const t = useTranslation();
@@ -34,8 +35,8 @@ export default function SettingsScreen() {
     },
     header: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xxl,
-      paddingBottom: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xs,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -45,6 +46,11 @@ export default function SettingsScreen() {
       fontWeight: '700',
       color: colors.textPrimary,
       letterSpacing: -0.5,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      marginTop: 2,
     },
     sectionLabel: {
       fontSize: 12,
@@ -129,10 +135,12 @@ export default function SettingsScreen() {
   }), [colors]);
 
   return (
+    <SwipeableScreen navigation={navigation} currentIndex={3} totalTabs={4}>
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>{t.settings.title}</Text>
+          <Text style={styles.subtitle}>{t.settings.subtitle}</Text>
         </View>
 
         <Text style={styles.sectionLabel}>{t.settings.appearance}</Text>
@@ -207,5 +215,6 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </SwipeableScreen>
   );
 }

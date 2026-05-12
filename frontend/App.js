@@ -1,10 +1,11 @@
 import React, { useEffect, useCallback } from 'react';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as SystemUI from 'expo-system-ui';
 import * as SplashScreen from 'expo-splash-screen';
 import { Platform, View } from 'react-native';
 import { SettingsProvider } from './src/context/SettingsContext';
@@ -17,7 +18,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 
 SplashScreen.preventAutoHideAsync();
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
 const TAB_ICONS = {
   Home: 'home',
@@ -32,6 +33,8 @@ function AppNavigator() {
   const isDark = settings.theme === 'dark';
 
   useEffect(() => {
+    const bg = isDark ? '#111F35' : '#FFFFFF';
+    SystemUI.setBackgroundColorAsync(bg);
     if (Platform.OS !== 'android') return;
     NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
   }, [isDark]);
@@ -47,62 +50,60 @@ function AppNavigator() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
         <Tab.Navigator
+          tabBarPosition="bottom"
+          swipeEnabled={true}
           screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons
-                name={TAB_ICONS[route.name]}
-                size={size}
-                color={color}
-              />
-            ),
+            tabBarShowLabel: true,
+            tabBarShowIcon: true,
             tabBarActiveTintColor: isDark ? '#1D9E75' : '#0D6B4F',
             tabBarInactiveTintColor: '#8E9BB3',
+            tabBarIndicatorStyle: {
+              backgroundColor: 'transparent',
+              height: 0,
+            },
             tabBarStyle: {
               backgroundColor: isDark ? '#111F35' : '#FFFFFF',
               borderTopWidth: 1,
               borderTopColor: isDark ? '#162540' : '#F0F3F7',
-              paddingTop: 4,
+              height: 70,
+              paddingBottom: 10,
+              paddingTop: 2,
             },
             tabBarLabelStyle: {
               fontSize: 11,
               fontWeight: '500',
               letterSpacing: 0.2,
+              textTransform: 'none',
             },
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name={TAB_ICONS[route.name]} size={24} color={color} />
+            ),
           })}
         >
-          <Tab.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ tabBarLabel: t.tabs.home }}
-          />
-          <Tab.Screen
-            name="Stats"
-            component={StatsScreen}
-            options={{ tabBarLabel: t.tabs.stats }}
-          />
-          <Tab.Screen
-            name="History"
-            component={HistoryScreen}
-            options={{ tabBarLabel: t.tabs.history }}
-          />
-          <Tab.Screen
-            name="Settings"
-            component={SettingsScreen}
-            options={{ tabBarLabel: t.tabs.settings }}
-          />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabs.home }} />
+          <Tab.Screen name="Stats" component={StatsScreen} options={{ tabBarLabel: t.tabs.stats }} />
+          <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t.tabs.history }} />
+          <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t.tabs.settings }} />
         </Tab.Navigator>
       </NavigationContainer>
     </View>
   );
 }
 
+function ThemedRoot() {
+  const { settings } = useSettings();
+  const bgColor = settings.theme === 'dark' ? '#111F35' : '#FFFFFF';
+  return (
+    <SafeAreaProvider style={{ backgroundColor: bgColor }}>
+      <AppNavigator />
+    </SafeAreaProvider>
+  );
+}
+
 export default function App() {
   return (
     <SettingsProvider>
-      <SafeAreaProvider>
-        <AppNavigator />
-      </SafeAreaProvider>
+      <ThemedRoot />
     </SettingsProvider>
   );
 }

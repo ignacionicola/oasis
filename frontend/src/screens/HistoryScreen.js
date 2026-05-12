@@ -14,6 +14,7 @@ import api from '../services/api';
 import ExpenseCard from '../components/ExpenseCard';
 import ExpenseDetailModal from '../components/ExpenseDetailModal';
 import ErrorBanner from '../components/ErrorBanner';
+import SwipeableScreen from '../components/SwipeableScreen';
 
 const CATEGORIES = [
   { name: 'Comida', icon: 'restaurant' },
@@ -27,7 +28,7 @@ const CATEGORIES = [
   { name: 'Otros', icon: 'more-horiz' },
 ];
 
-export default function HistoryScreen() {
+export default function HistoryScreen({ navigation }) {
   const colors = useTheme();
   const { settings } = useSettings();
   const { currency } = settings;
@@ -142,8 +143,8 @@ export default function HistoryScreen() {
     },
     header: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xs,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -153,6 +154,11 @@ export default function HistoryScreen() {
       fontWeight: '700',
       color: colors.textPrimary,
       letterSpacing: -0.5,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      marginTop: 2,
     },
     monthRow: {
       flexDirection: 'row',
@@ -260,6 +266,7 @@ export default function HistoryScreen() {
   }), [colors]);
 
   return (
+    <SwipeableScreen navigation={navigation} currentIndex={2} totalTabs={4}>
     <SafeAreaView style={styles.container} edges={['top']}>
       {error && (
         <ErrorBanner
@@ -270,6 +277,7 @@ export default function HistoryScreen() {
 
       <View style={styles.header}>
         <Text style={styles.title}>{t.history.title}</Text>
+        <Text style={styles.subtitle}>{t.history.subtitle}</Text>
       </View>
 
       <View style={styles.monthRow}>
@@ -401,5 +409,6 @@ export default function HistoryScreen() {
         onDelete={handleDeleteExpense}
       />
     </SafeAreaView>
+    </SwipeableScreen>
   );
 }

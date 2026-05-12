@@ -12,10 +12,11 @@ import { formatCurrency } from '../utils/currency';
 import useTranslation from '../i18n';
 import api from '../services/api';
 import ErrorBanner from '../components/ErrorBanner';
+import SwipeableScreen from '../components/SwipeableScreen';
 
 const screenWidth = Dimensions.get('window').width;
 
-export default function StatsScreen() {
+export default function StatsScreen({ navigation }) {
   const colors = useTheme();
   const { settings } = useSettings();
   const { currency } = settings;
@@ -62,8 +63,8 @@ export default function StatsScreen() {
     },
     header: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xxl,
-      paddingBottom: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xs,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -208,6 +209,7 @@ export default function StatsScreen() {
   }), [colors]);
 
   return (
+    <SwipeableScreen navigation={navigation} currentIndex={1} totalTabs={4}>
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
@@ -313,5 +315,6 @@ export default function StatsScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+    </SwipeableScreen>
   );
 }

@@ -17,8 +17,9 @@ import AddExpenseModal from '../components/AddExpenseModal';
 import IncomesModal from '../components/IncomesModal';
 import ExpenseDetailModal from '../components/ExpenseDetailModal';
 import ErrorBanner from '../components/ErrorBanner';
+import SwipeableScreen from '../components/SwipeableScreen';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const colors = useTheme();
   const { settings } = useSettings();
   const { currency } = settings;
@@ -68,12 +69,6 @@ export default function HomeScreen() {
       );
     }
 
-    if (result.alert) {
-      const alertTitle =
-        result.alert.alert_level === 'danger' ? '⚠️ Presupuesto superado' : '⚡ Atención';
-      Alert.alert(alertTitle, result.alert.message, [{ text: 'OK' }]);
-    }
-
     await loadData();
   };
 
@@ -94,8 +89,8 @@ export default function HomeScreen() {
     },
     topBar: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xxl,
-      paddingBottom: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xs,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -344,6 +339,7 @@ export default function HomeScreen() {
   );
 
   return (
+    <SwipeableScreen navigation={navigation} currentIndex={0} totalTabs={4}>
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
@@ -414,5 +410,6 @@ export default function HomeScreen() {
         onDelete={handleDeleteExpense}
       />
     </SafeAreaView>
+    </SwipeableScreen>
   );
 }

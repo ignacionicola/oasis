@@ -65,18 +65,11 @@ class AnalysisAgent:
             description=normalized.description,
         )
 
-        # 3. Alerta de presupuesto
-        budget_alert = check_budget_alert(
-            db=db,
-            category=category,
-            new_amount=normalized.amount,
-        )
-
         return {
             "category": category,
             "confidence": confidence,
             "duplicate_warning": duplicate_warning,
-            "budget_alert": budget_alert,
+            "budget_alert": None,
         }
 
     def save_expense(

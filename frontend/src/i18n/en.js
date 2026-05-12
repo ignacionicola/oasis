@@ -6,7 +6,7 @@ export default {
     settings: 'Settings',
   },
   home: {
-    appName: 'Oasis Finance',
+    appName: 'Finanzas',
     availableThisMonth: 'Available this month',
     spentThisMonth: 'Spent this month',
     income: 'income ›',
@@ -78,13 +78,14 @@ export default {
   },
   settings: {
     title: 'Settings',
+    subtitle: 'Customize your app',
     appearance: 'Appearance',
     theme: 'Theme',
     light: 'Light',
     dark: 'Dark',
     currency: 'Currency',
     language: 'Language',
-    version: 'Oasis Finance v0.1.0',
+    version: 'Finanzas v0.1.0',
   },
   months: {
     1: 'January', 2: 'February', 3: 'March', 4: 'April',
@@ -93,6 +94,7 @@ export default {
   },
   history: {
     title: 'History',
+    subtitle: 'All your expenses',
     search: 'Search expense...',
     noExpenses: 'No expenses to show',
     all: 'All',
