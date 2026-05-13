@@ -68,8 +68,7 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
+      quality: 0.7,
     });
     if (result.canceled) return;
     await processScanResult(result.assets[0].uri);
@@ -83,8 +82,7 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
     }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
+      quality: 0.7,
     });
     if (result.canceled) return;
     await processScanResult(result.assets[0].uri);
