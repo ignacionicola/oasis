@@ -114,7 +114,9 @@ class ApiService {
   }
 
   async scanTicket(imageUri) {
+    console.log('[API.scanTicket] URI recibida:', imageUri);
     const token = await this.getToken();
+    console.log('[API.scanTicket] Token presente:', !!token);
     const formData = new FormData();
     formData.append('image', {
       uri: imageUri,
@@ -124,17 +126,20 @@ class ApiService {
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     try {
+      console.log('[API.scanTicket] POST a', `${BASE_URL}/scanner/ticket`);
       const response = await fetch(`${BASE_URL}/scanner/ticket`, {
         method: 'POST',
         headers,
         body: formData,
       });
+      console.log('[API.scanTicket] Status:', response.status);
       if (response.status === 401) {
         await this.removeToken();
         throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
       }
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
+        console.log('[API.scanTicket] Error body:', err);
         throw new Error(err.detail || `Error ${response.status}`);
       }
       return await response.json();

@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   Modal, StyleSheet, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { spacing, borderRadius } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
-import api from '../services/api';
 
 function formatWithDots(digits) {
   if (!digits) return '';
@@ -29,7 +27,15 @@ const CATEGORIES = [
   { name: 'Otros', icon: 'more-horiz' },
 ];
 
-export default function AddExpenseModal({ visible, onClose, onSubmit }) {
+export default function AddExpenseModal({
+  visible,
+  onClose,
+  onSubmit,
+  onRequestScan,
+  onRequestCamera,
+  scanning = false,
+  prefillData = null,
+}) {
   const colors = useTheme();
   const { settings } = useSettings();
   const { currency } = settings;
@@ -38,58 +44,26 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [scanning, setScanning] = useState(false);
 
-  const processScanResult = async (uri) => {
-    setScanning(true);
-    try {
-      const result = await api.scanTicket(uri);
-      if (result.amount > 0) {
-        setRawAmount(String(Math.round(result.amount)));
-      }
-      if (result.description !== '') {
-        setDescription(result.description);
-      }
-      if (result.confidence < 0.6) {
-        Alert.alert('', t.addExpense.lowConfidence);
-      }
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setScanning(false);
+  useEffect(() => {
+    if (!prefillData) return;
+    if (prefillData.amount && prefillData.amount > 0) {
+      setRawAmount(String(Math.round(prefillData.amount)));
     }
+    if (prefillData.description) {
+      setDescription(prefillData.description);
+    }
+    if (prefillData.confidence !== undefined && prefillData.confidence < 0.6) {
+      Alert.alert('', t.addExpense.lowConfidence);
+    }
+  }, [prefillData]);
+
+  const handleScanTicket = () => {
+    if (onRequestScan) onRequestScan();
   };
 
-  const handleScanTicket = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para escanear el comprobante.');
-      return;
-    }
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
-    });
-    if (result.canceled) return;
-    await processScanResult(result.assets[0].uri);
-  };
-
-  const handleOpenCamera = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara para sacar la foto.');
-      return;
-    }
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
-    });
-    if (result.canceled) return;
-    await processScanResult(result.assets[0].uri);
+  const handleOpenCamera = () => {
+    if (onRequestCamera) onRequestCamera();
   };
 
   const handleAmountChange = (text) => {

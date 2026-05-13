@@ -1,17 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { View, PanResponder, AppState } from 'react-native';
-import { useSettings } from '../context/SettingsContext';
 
 const TAB_NAMES = ['Home', 'Stats', 'History', 'Settings'];
 
 export default function SwipeableScreen({ children, navigation, currentIndex, totalTabs }) {
-  const { settings } = useSettings();
   const isBlocked = useRef(false);
-  const isModalOpenRef = useRef(false);
-
-  useEffect(() => {
-    isModalOpenRef.current = settings.isModalOpen === true;
-  }, [settings.isModalOpen]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -29,7 +22,6 @@ export default function SwipeableScreen({ children, navigation, currentIndex, to
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        if (isModalOpenRef.current) return false;
         if (isBlocked.current) return false;
         const { dx, dy } = gestureState;
         if (Math.abs(dx) < 40) return false;
@@ -38,7 +30,6 @@ export default function SwipeableScreen({ children, navigation, currentIndex, to
       },
       onPanResponderTerminationRequest: () => true,
       onPanResponderRelease: (_, gestureState) => {
-        if (isModalOpenRef.current) return;
         if (isBlocked.current) return;
         const { dx, vx } = gestureState;
         if (dx < -80 && vx < -0.3 && currentIndex < totalTabs - 1) {

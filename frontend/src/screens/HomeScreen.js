@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { spacing, borderRadius, shadows } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
@@ -17,11 +18,10 @@ import AddExpenseModal from '../components/AddExpenseModal';
 import IncomesModal from '../components/IncomesModal';
 import ExpenseDetailModal from '../components/ExpenseDetailModal';
 import ErrorBanner from '../components/ErrorBanner';
-import SwipeableScreen from '../components/SwipeableScreen';
 
 export default function HomeScreen({ navigation }) {
   const colors = useTheme();
-  const { settings, incrementDataVersion, setModalOpen } = useSettings();
+  const { settings, incrementDataVersion } = useSettings();
   const { currency } = settings;
   const t = useTranslation();
   const [summary, setSummary] = useState(null);
@@ -32,6 +32,101 @@ export default function HomeScreen({ navigation }) {
   const [incomesModalVisible, setIncomesModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [error, setError] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [prefillData, setPrefillData] = useState(null);
+
+  const runPicker = async (source) => {
+    console.log('[SCAN] 1. runPicker iniciado, source:', source);
+    Alert.alert('DEBUG 1', `runPicker source=${source}`);
+
+    if (source === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      console.log('[SCAN] 2. Permiso cámara:', status);
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara.');
+        return null;
+      }
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[SCAN] 2. Permiso galería:', status);
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería.');
+        return null;
+      }
+    }
+
+    console.log('[SCAN] 3. Cerrando modal antes de abrir picker');
+    setModalVisible(false);
+    await new Promise(r => setTimeout(r, 300));
+
+    let result;
+    try {
+      console.log('[SCAN] 4. Lanzando picker...');
+      if (source === 'camera') {
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+        });
+      }
+      console.log('[SCAN] 5. Picker volvió:', JSON.stringify(result).substring(0, 200));
+    } catch (err) {
+      console.log('[SCAN] ERROR picker:', err.message);
+      Alert.alert('DEBUG ERROR PICKER', err.message);
+      setModalVisible(true);
+      return null;
+    }
+
+    console.log('[SCAN] 6. Reabriendo modal');
+    setModalVisible(true);
+
+    if (result.canceled) {
+      console.log('[SCAN] 7. Usuario canceló');
+      Alert.alert('DEBUG', 'Picker canceled');
+      return null;
+    }
+
+    const uri = result.assets[0].uri;
+    console.log('[SCAN] 8. URI obtenida:', uri);
+    Alert.alert('DEBUG 8', `URI: ${uri.substring(0, 60)}...`);
+    return uri;
+  };
+
+  const scanFromUri = async (uri) => {
+    console.log('[SCAN] 9. Llamando api.scanTicket...');
+    Alert.alert('DEBUG 9', 'Enviando imagen al backend...');
+    setScanning(true);
+    try {
+      const scanned = await api.scanTicket(uri);
+      console.log('[SCAN] 10. Respuesta del backend:', JSON.stringify(scanned));
+      Alert.alert('DEBUG 10 OK', `Backend respondió: amount=${scanned.amount}, desc=${scanned.description}`);
+      setPrefillData({
+        amount: scanned.amount,
+        description: scanned.description || '',
+        confidence: scanned.confidence,
+        _ts: Date.now(),
+      });
+    } catch (err) {
+      console.log('[SCAN] ERROR backend:', err.message);
+      Alert.alert('DEBUG ERROR BACKEND', err.message);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleRequestScan = async () => {
+    const uri = await runPicker('gallery');
+    if (uri) await scanFromUri(uri);
+  };
+
+  const handleRequestCamera = async () => {
+    const uri = await runPicker('camera');
+    if (uri) await scanFromUri(uri);
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -50,10 +145,6 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  useEffect(() => {
-    setModalOpen(modalVisible || incomesModalVisible);
-  }, [modalVisible, incomesModalVisible, setModalOpen]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -349,7 +440,6 @@ export default function HomeScreen({ navigation }) {
   );
 
   return (
-    <SwipeableScreen navigation={navigation} currentIndex={0} totalTabs={4}>
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
@@ -410,8 +500,15 @@ export default function HomeScreen({ navigation }) {
 
       <AddExpenseModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          setPrefillData(null);
+        }}
         onSubmit={handleAddExpense}
+        onRequestScan={handleRequestScan}
+        onRequestCamera={handleRequestCamera}
+        scanning={scanning}
+        prefillData={prefillData}
       />
 
       <ExpenseDetailModal
@@ -420,6 +517,5 @@ export default function HomeScreen({ navigation }) {
         onDelete={handleDeleteExpense}
       />
     </SafeAreaView>
-    </SwipeableScreen>
   );
 }
