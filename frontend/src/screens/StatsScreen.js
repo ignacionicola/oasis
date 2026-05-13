@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 import { spacing, borderRadius, shadows, categoryIcons } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
@@ -106,6 +107,34 @@ export default function StatsScreen({ navigation }) {
       marginTop: 4,
       fontWeight: '500',
       letterSpacing: 0.3,
+    },
+    donutSection: {
+      alignItems: 'center',
+      marginTop: spacing.xl,
+      paddingHorizontal: spacing.lg,
+    },
+    donutWrapper: {
+      width: 260,
+      height: 260,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    donutCenter: {
+      position: 'absolute',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    donutTotal: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    donutLabel: {
+      fontSize: 12,
+      color: colors.textTertiary,
+      marginTop: 2,
+      textTransform: 'lowercase',
     },
     section: {
       marginTop: spacing.lg,
@@ -247,6 +276,61 @@ export default function StatsScreen({ navigation }) {
             <Text style={styles.statLabel}>{t.stats.expenses}</Text>
           </View>
         </View>
+
+        {categories.length > 0 && summary?.total_spent > 0 && (
+          <View style={styles.donutSection}>
+            <View style={styles.donutWrapper}>
+              {(() => {
+                const SIZE = 260;
+                const CENTER = SIZE / 2;
+                const STROKE_WIDTH = 30;
+                const R = 95;
+                const C = 2 * Math.PI * R;
+                let cumulative = 0;
+                return (
+                  <Svg width={SIZE} height={SIZE}>
+                    <Circle
+                      cx={CENTER}
+                      cy={CENTER}
+                      r={R}
+                      fill="transparent"
+                      stroke={colors.borderLight}
+                      strokeWidth={STROKE_WIDTH}
+                    />
+                    {categories.map((cat) => {
+                      const pct = cat.total / summary.total_spent;
+                      const dashLength = pct * C;
+                      const offset = -cumulative * C;
+                      cumulative += pct;
+                      const catColor = colors.categories[cat.category] || colors.textTertiary;
+                      return (
+                        <Circle
+                          key={cat.category}
+                          cx={CENTER}
+                          cy={CENTER}
+                          r={R}
+                          fill="transparent"
+                          stroke={catColor}
+                          strokeWidth={STROKE_WIDTH}
+                          strokeDasharray={`${dashLength} ${C}`}
+                          strokeDashoffset={offset}
+                          strokeLinecap="butt"
+                          transform={`rotate(-90 ${CENTER} ${CENTER})`}
+                        />
+                      );
+                    })}
+                  </Svg>
+                );
+              })()}
+              <View style={styles.donutCenter} pointerEvents="none">
+                <Text style={styles.donutTotal}>
+                  {formatCurrency(summary.total_spent, currency)}
+                </Text>
+                <Text style={styles.donutLabel}>total</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.stats.byCategory}</Text>

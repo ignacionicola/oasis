@@ -252,16 +252,52 @@ export default function HistoryScreen({ navigation }) {
     },
     emptyState: {
       alignItems: 'center',
-      paddingVertical: spacing.xxl * 2,
+      paddingVertical: spacing.xxl,
+      paddingHorizontal: spacing.xl,
       gap: spacing.sm,
     },
-    emptyText: {
-      fontSize: 16,
-      fontWeight: '500',
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+      textAlign: 'center',
+    },
+    emptySubtitle: {
+      fontSize: 14,
       color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+      paddingHorizontal: spacing.md,
+    },
+    emptyButton: {
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm + 2,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.md,
+      backgroundColor: 'transparent',
+    },
+    emptyButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    tipContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      paddingVertical: spacing.lg,
+    },
+    tipText: {
+      fontSize: 12,
+      color: colors.textTertiary,
     },
     listContent: {
       paddingBottom: 32,
+      flexGrow: 1,
     },
   }), [colors]);
 
@@ -391,11 +427,47 @@ export default function HistoryScreen({ navigation }) {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           !loading && (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="receipt-long" size={48} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>{t.history.noExpenses}</Text>
-            </View>
+            (searchText || selectedCategory) ? (
+              <View style={styles.emptyState}>
+                <MaterialIcons name="search-off" size={72} color={colors.textTertiary} />
+                <Text style={styles.emptyTitle}>{t.history.noResults}</Text>
+                <Text style={styles.emptySubtitle}>{t.history.noResultsSubtitle}</Text>
+                <TouchableOpacity
+                  style={styles.emptyButton}
+                  onPress={() => {
+                    setSearchText('');
+                    setSelectedCategory(null);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.emptyButtonText}>{t.history.clearFilters}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <MaterialIcons name="receipt-long" size={72} color={colors.textTertiary} />
+                <Text style={styles.emptyTitle}>
+                  {t.history.noExpensesIn} {t.months[selectedMonth]}
+                </Text>
+                <Text style={styles.emptySubtitle}>{t.history.noExpensesSubtitle}</Text>
+                <TouchableOpacity
+                  style={styles.emptyButton}
+                  onPress={prevMonth}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.emptyButtonText}>{t.history.viewPreviousMonth}</Text>
+                </TouchableOpacity>
+              </View>
+            )
           )
+        }
+        ListFooterComponent={
+          expenses.length > 0 && expenses.length < 5 ? (
+            <View style={styles.tipContainer}>
+              <MaterialIcons name="lightbulb-outline" size={16} color={colors.accent} />
+              <Text style={styles.tipText}>{t.history.swipeTip}</Text>
+            </View>
+          ) : null
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

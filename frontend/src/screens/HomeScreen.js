@@ -110,10 +110,14 @@ export default function HomeScreen({ navigation }) {
     },
     heroCard: {
       margin: spacing.lg,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceElevated,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
       ...shadows.md,
+      shadowOpacity: 0.15,
+      elevation: 6,
     },
     heroLabel: {
       fontSize: 13,

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView,
+  Platform, ScrollView, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -10,6 +10,8 @@ import useTheme from '../theme/useTheme';
 import useTranslation from '../i18n';
 import { spacing, borderRadius } from '../theme';
 import { useAuth } from '../context/AuthContext';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function AuthScreen() {
   const colors = useTheme();
@@ -59,26 +61,58 @@ export default function AuthScreen() {
   };
 
   const styles = useMemo(() => StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    scroll: { flexGrow: 1, justifyContent: 'center' },
-    inner: {
+    container: { flex: 1, backgroundColor: colors.primaryLight },
+    scroll: { flexGrow: 1 },
+    header: {
+      height: SCREEN_HEIGHT * 0.35,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xxl,
-      gap: spacing.lg,
     },
-    logo: {
-      fontSize: 40,
+    iconCircle: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    appName: {
+      fontSize: 28,
       fontWeight: '700',
       color: colors.primary,
-      letterSpacing: -1,
-      textAlign: 'center',
-      marginBottom: spacing.xs,
+      letterSpacing: -0.5,
     },
     tagline: {
-      fontSize: 15,
-      color: colors.textTertiary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
       textAlign: 'center',
-      marginBottom: spacing.md,
+    },
+    formContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      marginTop: -24,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.lg,
+      gap: spacing.lg,
+    },
+    formTitle: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+      letterSpacing: -0.3,
     },
     fieldGroup: {
       gap: spacing.xs,
@@ -111,7 +145,12 @@ export default function AuthScreen() {
       borderRadius: borderRadius.md,
       paddingVertical: 16,
       alignItems: 'center',
-      marginTop: spacing.xs,
+      marginTop: spacing.sm,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
     },
     buttonText: {
       color: '#FFFFFF',
@@ -134,12 +173,27 @@ export default function AuthScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.inner}>
-            <View>
-              <Text style={styles.logo}>Finanzas</Text>
-              <Text style={styles.tagline}>Tu economía personal, ordenada</Text>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <View style={styles.iconCircle}>
+              <MaterialIcons
+                name="account-balance-wallet"
+                size={64}
+                color={colors.primary}
+              />
             </View>
+            <Text style={styles.appName}>Plata</Text>
+            <Text style={styles.tagline}>Tu economía personal, ordenada</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <Text style={styles.formTitle}>
+              {isRegister ? t.auth.register : t.auth.login}
+            </Text>
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>{t.auth.email}</Text>

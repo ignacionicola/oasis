@@ -62,9 +62,12 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
 
   const handleScanTicket = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para escanear el comprobante.');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -74,8 +77,12 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
 
   const handleOpenCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara para sacar la foto.');
+      return;
+    }
     const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -261,6 +268,8 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
       visible={visible}
       animationType="slide"
       transparent={true}
+      statusBarTranslucent={true}
+      hardwareAccelerated={true}
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView

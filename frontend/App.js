@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform, View, ActivityIndicator } from 'react-native';
+import { Platform, View, ActivityIndicator, AppState } from 'react-native';
 import { SettingsProvider } from './src/context/SettingsContext';
 import { useSettings } from './src/context/SettingsContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -22,24 +22,32 @@ SplashScreen.preventAutoHideAsync();
 
 const Tab = createMaterialTopTabNavigator();
 
-const TAB_ICONS = {
-  Home: 'home',
-  Stats: 'bar-chart',
-  History: 'history',
-  Settings: 'settings',
-};
-
 function AppNavigator() {
   const { settings, loaded } = useSettings();
   const { user, loading: authLoading } = useAuth();
   const t = useTranslation();
   const isDark = settings.theme === 'dark';
+  const [appKey, setAppKey] = useState(0);
 
   useEffect(() => {
     const bg = isDark ? '#111F35' : '#FFFFFF';
     SystemUI.setBackgroundColorAsync(bg);
     if (Platform.OS !== 'android') return;
     NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+  }, [isDark]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        const bg = isDark ? '#111F35' : '#FFFFFF';
+        SystemUI.setBackgroundColorAsync(bg);
+        if (Platform.OS === 'android') {
+          NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+        }
+        setAppKey((k) => k + 1);
+      }
+    });
+    return () => sub.remove();
   }, [isDark]);
 
   const bgColor = isDark ? '#111F35' : '#FFFFFF';
@@ -70,6 +78,7 @@ function AppNavigator() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
         <Tab.Navigator
+          key={appKey}
           tabBarPosition="bottom"
           swipeEnabled={true}
           screenOptions={({ route }) => ({
@@ -95,15 +104,48 @@ function AppNavigator() {
               letterSpacing: 0.2,
               textTransform: 'none',
             },
-            tabBarIcon: ({ color }) => (
-              <MaterialIcons name={TAB_ICONS[route.name]} size={24} color={color} />
-            ),
           })}
         >
-          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabs.home }} />
-          <Tab.Screen name="Stats" component={StatsScreen} options={{ tabBarLabel: t.tabs.stats }} />
-          <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t.tabs.history }} />
-          <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t.tabs.settings }} />
+          <Tab.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{
+              tabBarLabel: t.tabs.home,
+              tabBarIcon: ({ color }) => (
+                <MaterialIcons name="home" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Stats"
+            component={StatsScreen}
+            options={{
+              tabBarLabel: t.tabs.stats,
+              tabBarIcon: ({ color }) => (
+                <MaterialIcons name="bar-chart" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="History"
+            component={HistoryScreen}
+            options={{
+              tabBarLabel: t.tabs.history,
+              tabBarIcon: ({ color }) => (
+                <MaterialIcons name="history" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{
+              tabBarLabel: t.tabs.settings,
+              tabBarIcon: ({ color }) => (
+                <MaterialIcons name="settings" size={24} color={color} />
+              ),
+            }}
+          />
         </Tab.Navigator>
       </NavigationContainer>
     </View>

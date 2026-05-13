@@ -6,7 +6,7 @@ export default {
     settings: 'Settings',
   },
   home: {
-    appName: 'Finanzas',
+    appName: 'Plata',
     availableThisMonth: 'Available this month',
     spentThisMonth: 'Spent this month',
     income: 'income ›',
@@ -85,7 +85,7 @@ export default {
     dark: 'Dark',
     currency: 'Currency',
     language: 'Language',
-    version: 'Finanzas v0.1.0',
+    version: 'Plata v0.1.0',
   },
   months: {
     1: 'January', 2: 'February', 3: 'March', 4: 'April',
@@ -97,6 +97,13 @@ export default {
     subtitle: 'All your expenses',
     search: 'Search expense...',
     noExpenses: 'No expenses to show',
+    noExpensesIn: 'No expenses in',
+    noExpensesSubtitle: 'All your expenses for this month will appear here',
+    viewPreviousMonth: 'View previous month',
+    noResults: 'No results',
+    noResultsSubtitle: 'Try another search or category',
+    clearFilters: 'Clear filters',
+    swipeTip: 'Swipe to see other months',
     all: 'All',
   },
   auth: {

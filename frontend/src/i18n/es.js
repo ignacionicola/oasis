@@ -6,7 +6,7 @@ export default {
     settings: 'Ajustes',
   },
   home: {
-    appName: 'Finanzas',
+    appName: 'Plata',
     availableThisMonth: 'Disponible este mes',
     spentThisMonth: 'Gastaste este mes',
     income: 'ingresos ›',
@@ -85,7 +85,7 @@ export default {
     dark: 'Oscuro',
     currency: 'Moneda',
     language: 'Idioma',
-    version: 'Finanzas v0.1.0',
+    version: 'Plata v0.1.0',
   },
   months: {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
@@ -97,6 +97,13 @@ export default {
     subtitle: 'Todos tus gastos',
     search: 'Buscar gasto...',
     noExpenses: 'No hay gastos para mostrar',
+    noExpensesIn: 'Sin gastos en',
+    noExpensesSubtitle: 'Todos tus gastos de este mes aparecerán acá',
+    viewPreviousMonth: 'Ver mes anterior',
+    noResults: 'Sin resultados',
+    noResultsSubtitle: 'Probá con otra búsqueda o categoría',
+    clearFilters: 'Limpiar filtros',
+    swipeTip: 'Swipe para ver otros meses',
     all: 'Todas',
   },
   auth: {

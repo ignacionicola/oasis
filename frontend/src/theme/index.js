@@ -1,5 +1,5 @@
 /**
- * Oasis Finance — Design System
+ * Plata — Design System
  *
  * Paleta inspirada en un oasis: azules profundos, arena dorada, verde esmeralda.
  * Tipografía clara y espaciosa para máxima legibilidad.
