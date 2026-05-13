@@ -30,7 +30,9 @@ export function SettingsProvider({ children }) {
   const [settings, dispatch] = useReducer(reducer, DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const incrementDataVersion = () => setDataVersion((v) => v + 1);
+  const setModalOpen = (value) => setIsModalOpen(!!value);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
@@ -52,7 +54,7 @@ export function SettingsProvider({ children }) {
   const setLanguage = (language) => dispatch({ type: 'SET_LANGUAGE', payload: language });
 
   return (
-    <SettingsContext.Provider value={{ settings, loaded, dataVersion, incrementDataVersion, setTheme, setCurrency, setLanguage }}>
+    <SettingsContext.Provider value={{ settings: { ...settings, isModalOpen }, loaded, dataVersion, incrementDataVersion, setTheme, setCurrency, setLanguage, setModalOpen }}>
       {children}
     </SettingsContext.Provider>
   );

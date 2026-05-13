@@ -21,7 +21,7 @@ import SwipeableScreen from '../components/SwipeableScreen';
 
 export default function HomeScreen({ navigation }) {
   const colors = useTheme();
-  const { settings, incrementDataVersion } = useSettings();
+  const { settings, incrementDataVersion, setModalOpen } = useSettings();
   const { currency } = settings;
   const t = useTranslation();
   const [summary, setSummary] = useState(null);
@@ -50,6 +50,10 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    setModalOpen(modalVisible || incomesModalVisible);
+  }, [modalVisible, incomesModalVisible, setModalOpen]);
 
   const onRefresh = async () => {
     setRefreshing(true);
