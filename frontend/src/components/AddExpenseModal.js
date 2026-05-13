@@ -66,9 +66,11 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
       Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para escanear el comprobante.');
       return;
     }
+    await new Promise(resolve => setTimeout(resolve, 100));
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.7,
+      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
     });
     if (result.canceled) return;
     await processScanResult(result.assets[0].uri);
@@ -80,9 +82,11 @@ export default function AddExpenseModal({ visible, onClose, onSubmit }) {
       Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara para sacar la foto.');
       return;
     }
+    await new Promise(resolve => setTimeout(resolve, 100));
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       quality: 0.7,
+      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
     });
     if (result.canceled) return;
     await processScanResult(result.assets[0].uri);
