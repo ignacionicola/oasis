@@ -35,7 +35,6 @@ analysis_agent = AnalysisAgent()
 @router.post("/", response_model=ExpenseWithAlert, status_code=201)
 async def create_expense(
     expense_data: ExpenseCreate,
-    force_save: bool = Query(False, description="Guardar aunque sea duplicado"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -51,19 +50,17 @@ async def create_expense(
         force_category=expense_data.category,
     )
 
-    is_dup = bool(analysis["duplicate_warning"]) and not force_save
     expense = analysis_agent.save_expense(
         normalized=normalized,
         analysis=analysis,
         db=db,
-        is_duplicate=is_dup,
+        is_duplicate=False,
         user_id=current_user.id,
     )
 
     return ExpenseWithAlert(
         expense=ExpenseResponse.model_validate(expense),
-        alert=analysis["budget_alert"],
-        duplicate_warning=analysis["duplicate_warning"],
+        alert=analysis.get("budget_alert"),
     )
 
 

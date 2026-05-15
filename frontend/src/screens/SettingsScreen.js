@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
@@ -27,7 +27,7 @@ const LANGUAGES = [
 
 export default function SettingsScreen({ navigation }) {
   const colors = useTheme();
-  const { settings, setTheme, setCurrency, setLanguage } = useSettings();
+  const { settings, setTheme, setCurrency, setLanguage, incrementDataVersion } = useSettings();
   const { user, logout } = useAuth();
   const isDark = settings.theme === 'dark';
   const t = useTranslation();
@@ -97,6 +97,7 @@ export default function SettingsScreen({ navigation }) {
           onPress: async () => {
             try {
               await api.deleteData();
+              incrementDataVersion();
               Alert.alert('Listo', 'Tus datos fueron eliminados.');
             } catch (err) {
               Alert.alert('Error', err?.message || String(err));

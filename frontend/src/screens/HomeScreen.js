@@ -185,7 +185,7 @@ function QuickAction({ icon, label, primary, colors, onPress }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function HomeScreen({ navigation }) {
   const colors = useTheme();
-  const { settings, incrementDataVersion } = useSettings();
+  const { settings, incrementDataVersion, dataVersion } = useSettings();
   const { currency } = settings;
   const isDark = settings.theme === 'dark';
   const t = useTranslation();
@@ -224,7 +224,7 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData, dataVersion]);
 
   const onRefresh = async () => {
     setRefreshing(true);
