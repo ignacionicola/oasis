@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   Modal, StyleSheet, ScrollView, ActivityIndicator,
-  Alert, Platform, KeyboardAvoidingView,
+  Alert, Platform, KeyboardAvoidingView, Dimensions,
 } from 'react-native';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { spacing, borderRadius, fonts } from '../theme';
@@ -135,7 +137,7 @@ export default function BottomSheet({
       backgroundColor: colors.surface,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
-      maxHeight: '93%',
+      height: Math.round(SCREEN_HEIGHT * 0.9),
       borderTopWidth: 1,
       borderColor: colors.border,
     },
@@ -340,6 +342,7 @@ export default function BottomSheet({
               </View>
 
               <ScrollView
+                style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
