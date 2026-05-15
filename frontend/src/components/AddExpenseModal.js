@@ -1,14 +1,16 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   Modal, StyleSheet, ScrollView, ActivityIndicator,
   KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { spacing, borderRadius } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
+import api from '../services/api';
 
 function formatWithDots(digits) {
   if (!digits) return '';
@@ -27,15 +29,7 @@ const CATEGORIES = [
   { name: 'Otros', icon: 'more-horiz' },
 ];
 
-export default function AddExpenseModal({
-  visible,
-  onClose,
-  onSubmit,
-  onRequestScan,
-  onRequestCamera,
-  scanning = false,
-  prefillData = null,
-}) {
+export default function AddExpenseModal({ visible, onClose, onSubmit }) {
   const colors = useTheme();
   const { settings } = useSettings();
   const { currency } = settings;
@@ -44,26 +38,49 @@ export default function AddExpenseModal({
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
-  useEffect(() => {
-    if (!prefillData) return;
-    if (prefillData.amount && prefillData.amount > 0) {
-      setRawAmount(String(Math.round(prefillData.amount)));
+  const processScanResult = async (uri) => {
+    setScanning(true);
+    try {
+      const result = await api.scanTicket(uri);
+      if (result.amount > 0) {
+        setRawAmount(String(Math.round(result.amount)));
+      }
+      if (result.description !== '') {
+        setDescription(result.description);
+      }
+      if (result.confidence < 0.6) {
+        Alert.alert('', t.addExpense.lowConfidence);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setScanning(false);
     }
-    if (prefillData.description) {
-      setDescription(prefillData.description);
-    }
-    if (prefillData.confidence !== undefined && prefillData.confidence < 0.6) {
-      Alert.alert('', t.addExpense.lowConfidence);
-    }
-  }, [prefillData]);
-
-  const handleScanTicket = () => {
-    if (onRequestScan) onRequestScan();
   };
 
-  const handleOpenCamera = () => {
-    if (onRequestCamera) onRequestCamera();
+  const handleScanTicket = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    await processScanResult(result.assets[0].uri);
+  };
+
+  const handleOpenCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    await processScanResult(result.assets[0].uri);
   };
 
   const handleAmountChange = (text) => {
@@ -244,8 +261,6 @@ export default function AddExpenseModal({
       visible={visible}
       animationType="slide"
       transparent={true}
-      statusBarTranslucent={true}
-      hardwareAccelerated={true}
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
