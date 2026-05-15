@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { spacing, borderRadius } from '../theme';
+import { spacing, borderRadius, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
@@ -207,13 +207,13 @@ export default function BottomSheet({
       gap: 6,
     },
     currencySign: {
+      fontFamily: fonts.displayMedium,
       fontSize: 28,
-      fontWeight: '400',
       color: colors.textTertiary,
     },
     amountText: {
+      fontFamily: fonts.displayBold,
       fontSize: 56,
-      fontWeight: '700',
       letterSpacing: -2,
       lineHeight: 64,
     },
@@ -303,8 +303,8 @@ export default function BottomSheet({
       borderColor: colors.borderLight,
     },
     keypadBtnText: {
+      fontFamily: fonts.displayMedium,
       fontSize: 22,
-      fontWeight: '500',
       color: colors.textPrimary,
     },
     submitBtn: {

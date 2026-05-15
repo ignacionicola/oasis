@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, ScrollView,
-  StyleSheet, RefreshControl, Alert, StatusBar,
+  StyleSheet, RefreshControl, Alert, StatusBar, Animated, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Rect, Defs, RadialGradient, Stop, Circle, Path } from 'react-native-svg';
-import { spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
@@ -47,10 +47,35 @@ function TrendDown({ size = 12, color }) {
 }
 
 // ── ExpenseRow ─────────────────────────────────────────────────────────────────
-function ExpenseRow({ expense, colors, currency, onPress }) {
+function ExpenseRow({ expense, colors, currency, onPress, flash }) {
   const catColor = colors.categories[expense.category] || colors.textTertiary;
+  const bgAnim = useRef(new Animated.Value(flash ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (flash) {
+      bgAnim.setValue(1);
+      Animated.timing(bgAnim, {
+        toValue: 0,
+        duration: 1800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [flash, bgAnim]);
+
+  const bg = bgAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(0,0,0,0)', colors.primary + '33'],
+  });
 
   return (
+    <Animated.View
+      style={{
+        backgroundColor: bg,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderLight,
+      }}
+    >
     <TouchableOpacity
       onPress={() => onPress?.(expense)}
       activeOpacity={0.7}
@@ -60,8 +85,6 @@ function ExpenseRow({ expense, colors, currency, onPress }) {
         gap: 14,
         paddingVertical: 12,
         paddingHorizontal: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borderLight,
       }}
     >
       <CategoryIcon category={expense.category} color={catColor} size={22} containerSize={44} />
@@ -92,10 +115,11 @@ function ExpenseRow({ expense, colors, currency, onPress }) {
         </View>
       </View>
 
-      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary, letterSpacing: -0.3 }}>
+      <Text style={{ fontFamily: fonts.monoSemi, fontSize: 15, color: colors.textPrimary, letterSpacing: -0.3 }}>
         -{formatCurrency(expense.amount, currency)}
       </Text>
     </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -129,7 +153,7 @@ function MiniStat({ label, value, dir, color, colors, currency, onPress }) {
           {label.toUpperCase()}
         </Text>
       </View>
-      <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textPrimary, letterSpacing: -0.3 }}>
+      <Text style={{ fontFamily: fonts.display, fontSize: 18, color: colors.textPrimary, letterSpacing: -0.3 }}>
         {formatCurrency(value, currency)}
       </Text>
     </TouchableOpacity>
@@ -186,6 +210,7 @@ export default function HomeScreen({ navigation }) {
   const [incomesModalVisible, setIncomesModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [error, setError] = useState(null);
+  const [flashId, setFlashId] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -250,6 +275,59 @@ export default function HomeScreen({ navigation }) {
     setSheetVisible(true);
   };
 
+  // ── FAB animations ─────────────────────────────────────────────────────────
+  const fabPulse = useRef(new Animated.Value(0)).current;
+  const fabRotate = useRef(new Animated.Value(0)).current;
+  const fabScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabPulse, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabPulse, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [fabPulse]);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(fabRotate, {
+        toValue: sheetVisible ? 1 : 0,
+        stiffness: 200, damping: 18, mass: 0.9,
+        useNativeDriver: true,
+      }),
+      Animated.spring(fabScale, {
+        toValue: sheetVisible ? 0.92 : 1,
+        stiffness: 200, damping: 18,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [sheetVisible, fabRotate, fabScale]);
+
+  const fabRotateInterpolate = fabRotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '135deg'],
+  });
+  const fabPulseScale = fabPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.3],
+  });
+  const fabPulseOpacity = fabPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.55, 0],
+  });
+
   const handleAddExpense = async (data) => {
     const result = await api.createExpense(data);
     if (result.duplicate_warning) {
@@ -257,6 +335,10 @@ export default function HomeScreen({ navigation }) {
     }
     incrementDataVersion();
     await loadData();
+    if (result?.id) {
+      setFlashId(result.id);
+      setTimeout(() => setFlashId(null), 2000);
+    }
   };
 
   const handleAddIncome = async (data) => {
@@ -318,13 +400,13 @@ export default function HomeScreen({ navigation }) {
       justifyContent: 'center',
     },
     logoBadgeText: {
+      fontFamily: fonts.displayBold,
       color: colors.textInverse,
-      fontWeight: '800',
       fontSize: 15,
     },
     logoLabel: {
+      fontFamily: fonts.sansBold,
       fontSize: 12,
-      fontWeight: '700',
       color: colors.textSecondary,
       letterSpacing: 0.2,
     },
@@ -363,8 +445,8 @@ export default function HomeScreen({ navigation }) {
       marginBottom: 8,
     },
     heroEyebrow: {
+      fontFamily: fonts.sansBold,
       fontSize: 11,
-      fontWeight: '700',
       letterSpacing: 0.12,
       textTransform: 'uppercase',
       color: isDark ? 'rgba(180,200,220,0.6)' : colors.textTertiary,
@@ -381,8 +463,8 @@ export default function HomeScreen({ navigation }) {
       borderRadius: 999,
     },
     heroBadgeText: {
+      fontFamily: fonts.sansBold,
       fontSize: 11,
-      fontWeight: '700',
       color: colors.success,
     },
     heroAmountRow: {
@@ -392,16 +474,16 @@ export default function HomeScreen({ navigation }) {
       marginBottom: 16,
     },
     heroCurrency: {
+      fontFamily: fonts.displayMedium,
       fontSize: 28,
-      fontWeight: '400',
       color: isDark ? 'rgba(180,200,220,0.55)' : colors.textTertiary,
       letterSpacing: -0.5,
     },
     heroAmount: {
-      fontSize: 52,
-      fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 60,
       letterSpacing: -2.5,
-      lineHeight: 58,
+      lineHeight: 66,
     },
     heroMetaRow: {
       flexDirection: 'row',
@@ -436,8 +518,8 @@ export default function HomeScreen({ navigation }) {
       color: colors.textTertiary,
     },
     budgetPct: {
+      fontFamily: fonts.displayBold,
       fontSize: 26,
-      fontWeight: '700',
       letterSpacing: -1,
     },
     budgetTrack: {
@@ -478,8 +560,8 @@ export default function HomeScreen({ navigation }) {
       marginBottom: spacing.sm,
     },
     sectionTitle: {
+      fontFamily: fonts.displayBold,
       fontSize: 22,
-      fontWeight: '700',
       color: colors.textPrimary,
       letterSpacing: -0.5,
     },
@@ -520,17 +602,28 @@ export default function HomeScreen({ navigation }) {
       paddingHorizontal: spacing.xl,
     },
     // fab
-    fab: {
+    fabWrap: {
       position: 'absolute',
-      bottom: spacing.xl,
-      right: spacing.lg,
+      bottom: 92,
+      right: 22,
+      width: 60, height: 60,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    fabRing: {
+      position: 'absolute',
+      width: 60, height: 60,
+      borderRadius: 30,
+    },
+    fab: {
       width: 60, height: 60,
       borderRadius: 30,
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
       ...shadows.md,
-      elevation: 6,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.45,
+      elevation: 8,
     },
   }), [colors, isDark]);
 
@@ -768,6 +861,7 @@ export default function HomeScreen({ navigation }) {
               colors={colors}
               currency={currency}
               onPress={setSelectedExpense}
+              flash={item.id === flashId}
             />
           </View>
         )}
@@ -793,14 +887,32 @@ export default function HomeScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => openSheet('expense')}
-        activeOpacity={0.85}
-      >
-        <MaterialIcons name="add" size={28} color={colors.textInverse} />
-      </TouchableOpacity>
+      {/* FAB con breathing + rotate */}
+      <View pointerEvents="box-none" style={styles.fabWrap}>
+        {/* breathing ring */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.fabRing,
+            {
+              backgroundColor: colors.primary,
+              transform: [{ scale: fabPulseScale }],
+              opacity: fabPulseOpacity,
+            },
+          ]}
+        />
+        <Animated.View style={{ transform: [{ scale: fabScale }] }}>
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => openSheet('expense')}
+            activeOpacity={0.85}
+          >
+            <Animated.View style={{ transform: [{ rotate: fabRotateInterpolate }] }}>
+              <MaterialIcons name="add" size={28} color={colors.textInverse} />
+            </Animated.View>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
 
       {/* Modals */}
       <BottomSheet

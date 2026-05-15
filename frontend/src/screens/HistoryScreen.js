@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
@@ -79,7 +79,7 @@ function HistoryRow({ expense, colors, currency, onPress }) {
           </Text>
         </View>
       </View>
-      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary, letterSpacing: -0.3 }}>
+      <Text style={{ fontFamily: fonts.monoSemi, fontSize: 15, color: colors.textPrimary, letterSpacing: -0.3 }}>
         -{formatCurrency(expense.amount, currency)}
       </Text>
     </TouchableOpacity>
@@ -210,7 +210,8 @@ export default function HistoryScreen({ navigation }) {
       marginBottom: spacing.sm,
     },
     title: {
-      fontSize: 26, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 26,
       color: colors.textPrimary, letterSpacing: -0.6,
     },
     monthPill: {
@@ -260,11 +261,13 @@ export default function HistoryScreen({ navigation }) {
       gap: 4,
     },
     summaryCurrency: {
-      fontSize: 20, fontWeight: '400',
+      fontFamily: fonts.displayMedium,
+      fontSize: 20,
       color: colors.textTertiary,
     },
     summaryAmount: {
-      fontSize: 32, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 36,
       color: colors.textPrimary,
       letterSpacing: -1,
     },
@@ -332,14 +335,14 @@ export default function HistoryScreen({ navigation }) {
       paddingBottom: spacing.sm,
     },
     dayHeaderLabel: {
+      fontFamily: fonts.sansBold,
       fontSize: 10.5,
-      fontWeight: '700',
       color: colors.textTertiary,
       letterSpacing: 0.14,
     },
     dayHeaderTotal: {
+      fontFamily: fonts.monoSemi,
       fontSize: 12,
-      fontWeight: '700',
       color: colors.textSecondary,
       letterSpacing: -0.2,
     },
@@ -371,7 +374,8 @@ export default function HistoryScreen({ navigation }) {
       marginBottom: spacing.sm,
     },
     sectionTitle: {
-      fontSize: 18, fontWeight: '700',
+      fontFamily: fonts.display,
+      fontSize: 18,
       color: colors.textPrimary,
       letterSpacing: -0.4,
     },

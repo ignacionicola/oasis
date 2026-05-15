@@ -1,3 +1,19 @@
+export const fonts = {
+  // Display — Space Grotesk for hero numbers, titles
+  display: 'SpaceGrotesk_600SemiBold',
+  displayMedium: 'SpaceGrotesk_500Medium',
+  displayBold: 'SpaceGrotesk_700Bold',
+  // Body — Plus Jakarta Sans for UI
+  sans: 'PlusJakartaSans_500Medium',
+  sansRegular: 'PlusJakartaSans_400Regular',
+  sansSemi: 'PlusJakartaSans_600SemiBold',
+  sansBold: 'PlusJakartaSans_700Bold',
+  sansExtraBold: 'PlusJakartaSans_800ExtraBold',
+  // Mono — JetBrains Mono for tabular amounts
+  mono: 'JetBrainsMono_500Medium',
+  monoSemi: 'JetBrainsMono_600SemiBold',
+};
+
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -16,15 +32,16 @@ export const borderRadius = {
 };
 
 export const typography = {
-  h1: { fontSize: 28, fontWeight: '700', lineHeight: 34, letterSpacing: -0.5 },
-  h2: { fontSize: 22, fontWeight: '600', lineHeight: 28, letterSpacing: -0.3 },
-  h3: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
-  body: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
-  bodySmall: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
-  label: { fontSize: 13, fontWeight: '500', lineHeight: 18, letterSpacing: 0.3 },
-  labelSmall: { fontSize: 11, fontWeight: '600', lineHeight: 14, letterSpacing: 0.5 },
-  amount: { fontSize: 32, fontWeight: '700', lineHeight: 38, letterSpacing: -1 },
-  amountSmall: { fontSize: 20, fontWeight: '600', lineHeight: 26, letterSpacing: -0.5 },
+  h1: { fontFamily: fonts.displayBold, fontSize: 28, lineHeight: 34, letterSpacing: -0.5 },
+  h2: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
+  h3: { fontFamily: fonts.sansSemi, fontSize: 18, lineHeight: 24 },
+  body: { fontFamily: fonts.sansRegular, fontSize: 16, lineHeight: 24 },
+  bodySmall: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20 },
+  label: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 18, letterSpacing: 0.3 },
+  labelSmall: { fontFamily: fonts.sansSemi, fontSize: 11, lineHeight: 14, letterSpacing: 0.5 },
+  amount: { fontFamily: fonts.displayBold, fontSize: 32, lineHeight: 38, letterSpacing: -1 },
+  amountSmall: { fontFamily: fonts.display, fontSize: 20, lineHeight: 26, letterSpacing: -0.5 },
+  mono: { fontFamily: fonts.mono, fontSize: 14 },
 };
 
 export const shadows = {

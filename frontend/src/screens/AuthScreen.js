@@ -6,12 +6,34 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Stop, Rect, Path, G } from 'react-native-svg';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
-import { spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius, shadows, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import WelcomeScreen from './WelcomeScreen';
+
+// Google "G" logo
+function GoogleLogo({ size = 18 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+      <Path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.1 6.1 29.3 4 24 4 16.4 4 9.8 8.3 6.3 14.7z" />
+      <Path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.6 2.5-7.4 2.5-5.2 0-9.6-3.3-11.3-7.9l-6.6 5.1C9.6 39.6 16.2 44 24 44z" />
+      <Path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.3c-.4.4 6.7-4.9 6.7-15 0-1.3-.1-2.4-.4-3.5z" />
+    </Svg>
+  );
+}
+
+// Apple logo
+function AppleLogo({ size = 18, color = '#000' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </Svg>
+  );
+}
 
 function FloatInput({ label, value, onChangeText, icon, secure, onToggleSecure, secureVisible, error, keyboardType, autoCapitalize, colors, isDark, fieldFocused, setFocused, fieldKey }) {
   const isFocused = fieldFocused === fieldKey;
@@ -168,6 +190,7 @@ export default function AuthScreen() {
   const t = useTranslation();
   const { login, register } = useAuth();
 
+  const [view, setView] = useState('welcome');
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -252,12 +275,14 @@ export default function AuthScreen() {
       shadowOpacity: 0.45,
     },
     logoText: {
-      fontSize: 36, fontWeight: '800',
+      fontFamily: fonts.displayBold,
+      fontSize: 36,
       color: colors.textInverse,
       letterSpacing: -1,
     },
     appName: {
-      fontSize: 30, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 30,
       color: colors.textPrimary,
       letterSpacing: -0.8,
       marginBottom: 4,
@@ -318,7 +343,8 @@ export default function AuthScreen() {
       gap: 10,
     },
     headline: {
-      fontSize: 20, fontWeight: '700',
+      fontFamily: fonts.display,
+      fontSize: 20,
       color: colors.textPrimary,
       letterSpacing: -0.4,
       marginBottom: 2,
@@ -385,10 +411,48 @@ export default function AuthScreen() {
       backgroundColor: colors.borderLight,
     },
     dividerText: {
+      fontFamily: fonts.sansBold,
       fontSize: 10.5,
-      fontWeight: '700',
       color: colors.textTertiary,
       letterSpacing: 0.14,
+    },
+
+    // OAuth
+    oauthRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 2,
+    },
+    oauthBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: isDark ? 'rgba(10, 18, 34, 0.55)' : colors.background,
+    },
+    oauthText: {
+      fontFamily: fonts.sansSemi,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
+
+    // back button
+    backBtn: {
+      width: 38, height: 38,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: spacing.lg,
+      marginTop: spacing.sm,
+      marginBottom: -spacing.sm,
     },
 
     footerText: {
@@ -405,6 +469,15 @@ export default function AuthScreen() {
     },
   }), [colors, isDark]);
 
+  if (view === 'welcome') {
+    return (
+      <WelcomeScreen
+        onLogin={() => { setMode('login'); setView('form'); }}
+        onSignup={() => { setMode('register'); setView('form'); }}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -416,6 +489,15 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Back button */}
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => setView('welcome')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
+
           {/* Hero */}
           <View style={styles.hero}>
             <View style={styles.logoBadge}>
@@ -550,6 +632,26 @@ export default function AuthScreen() {
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>O CONTINUAR CON</Text>
               <View style={styles.dividerLine} />
+            </View>
+
+            {/* OAuth buttons */}
+            <View style={styles.oauthRow}>
+              <TouchableOpacity
+                style={styles.oauthBtn}
+                activeOpacity={0.7}
+                onPress={() => Alert.alert('Google', 'Próximamente')}
+              >
+                <GoogleLogo size={18} />
+                <Text style={styles.oauthText}>Google</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.oauthBtn}
+                activeOpacity={0.7}
+                onPress={() => Alert.alert('Apple', 'Próximamente')}
+              >
+                <AppleLogo size={18} color={isDark ? '#FFFFFF' : '#000000'} />
+                <Text style={styles.oauthText}>Apple</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Magic link */}

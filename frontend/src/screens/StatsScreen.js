@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet,
-  RefreshControl,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  RefreshControl, Animated, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
-import { spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
@@ -15,6 +15,140 @@ import api from '../services/api';
 import CategoryIcon from '../components/CategoryIcon';
 import ErrorBanner from '../components/ErrorBanner';
 import SwipeableScreen from '../components/SwipeableScreen';
+
+// Animated bar with scaleY stagger
+function MonthBar({ height, color, delay, isCurrent }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 700,
+      delay,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [anim, delay]);
+
+  return (
+    <Animated.View
+      style={{
+        width: '100%',
+        height: anim.interpolate({ inputRange: [0, 1], outputRange: [0, height] }),
+        backgroundColor: color,
+        borderTopLeftRadius: 6,
+        borderTopRightRadius: 6,
+        ...(isCurrent && {
+          shadowColor: color,
+          shadowOpacity: 0.5,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 6,
+        }),
+      }}
+    />
+  );
+}
+
+function MonthlyView({ monthlyData, colors, isDark, currency, styles, t }) {
+  if (!monthlyData.length) return null;
+
+  const maxVal = Math.max(...monthlyData.map(m => m.total), 1);
+  const monthsAbbr = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+  const fmtK = (n) => {
+    if (n === 0) return '—';
+    if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+    return n.toFixed(0);
+  };
+
+  // Reverse-chronological list with delta
+  const listData = [...monthlyData].reverse().map((m, i, arr) => {
+    const prev = arr[i + 1];
+    let delta = null;
+    if (prev && prev.total > 0) {
+      const pct = ((m.total - prev.total) / prev.total) * 100;
+      delta = { pct: Math.abs(pct).toFixed(1), up: pct > 0 };
+    }
+    return { ...m, delta };
+  });
+
+  return (
+    <>
+      <View style={styles.barsCard}>
+        <Text style={styles.barsHeaderLabel}>Comparativo últimos 6 meses</Text>
+        <View style={styles.barsRow}>
+          {monthlyData.map((m, i) => {
+            const isCurrent = i === monthlyData.length - 1;
+            const heightPct = (m.total / maxVal) * 130;
+            const barColor = isCurrent
+              ? colors.primary
+              : (isDark ? '#283450' : '#D8DFE6');
+            return (
+              <View key={`${m.month}-${m.year}`} style={styles.barCol}>
+                <Text style={styles.barKValue}>{fmtK(m.total)}</Text>
+                <MonthBar
+                  height={Math.max(heightPct, 6)}
+                  color={barColor}
+                  delay={i * 60}
+                  isCurrent={isCurrent}
+                />
+                <Text style={[styles.barMonth, isCurrent && styles.barMonthActive]}>
+                  {monthsAbbr[m.month - 1]}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Monthly list */}
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionTitle}>Por mes</Text>
+      </View>
+      <View style={styles.listCard}>
+        {listData.map((m, i) => {
+          const last = i === listData.length - 1;
+          return (
+            <View
+              key={`${m.month}-${m.year}`}
+              style={[styles.monthlyRow, last && { borderBottomWidth: 0 }]}
+            >
+              <View style={styles.monthlyLeft}>
+                <Text style={styles.monthlyName}>
+                  {t.months[m.month]} {m.year}
+                </Text>
+                <Text style={styles.monthlyCount}>
+                  {m.count} {m.count === 1 ? 'movimiento' : 'movimientos'}
+                </Text>
+              </View>
+              <View style={styles.monthlyRight}>
+                <Text style={styles.monthlyAmount}>
+                  {formatCurrency(m.total, currency)}
+                </Text>
+                {m.delta && (
+                  <View style={styles.monthlyDeltaRow}>
+                    <MaterialIcons
+                      name={m.delta.up ? 'arrow-upward' : 'arrow-downward'}
+                      size={11}
+                      color={m.delta.up ? colors.danger : colors.success}
+                    />
+                    <Text style={[
+                      styles.monthlyDelta,
+                      { color: m.delta.up ? colors.danger : colors.success },
+                    ]}>
+                      {m.delta.pct}%
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </>
+  );
+}
 
 export default function StatsScreen({ navigation }) {
   const colors = useTheme();
@@ -27,6 +161,8 @@ export default function StatsScreen({ navigation }) {
   const [summary, setSummary] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [view, setView] = useState('category'); // 'category' | 'month'
+  const [monthlyData, setMonthlyData] = useState([]); // array of {month, year, total, count}
 
   const loadData = useCallback(async () => {
     try {
@@ -39,6 +175,21 @@ export default function StatsScreen({ navigation }) {
       ]);
       setCategories(cats);
       setSummary(sum);
+
+      // Load last 6 months
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(y, m - 1 - i, 1);
+        months.push({ month: d.getMonth() + 1, year: d.getFullYear() });
+      }
+      const monthlyResults = await Promise.all(
+        months.map(({ month, year }) =>
+          api.getMonthSummary(month, year)
+            .then(s => ({ month, year, total: s.total_spent || 0, count: s.expense_count || 0 }))
+            .catch(() => ({ month, year, total: 0, count: 0 }))
+        )
+      );
+      setMonthlyData(monthlyResults);
     } catch (err) {
       setError(err.message);
     }
@@ -65,7 +216,8 @@ export default function StatsScreen({ navigation }) {
       paddingBottom: spacing.lg,
     },
     title: {
-      fontSize: 26, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 26,
       color: colors.textPrimary,
       letterSpacing: -0.6,
     },
@@ -74,6 +226,130 @@ export default function StatsScreen({ navigation }) {
       color: colors.textTertiary,
       marginTop: 4,
       textTransform: 'capitalize',
+    },
+    // segmented control
+    segmented: {
+      flexDirection: 'row',
+      marginHorizontal: spacing.lg,
+      padding: 4,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.lg,
+    },
+    segBtn: {
+      flex: 1,
+      paddingVertical: 9,
+      alignItems: 'center',
+      borderRadius: borderRadius.full,
+    },
+    segBtnActive: {
+      backgroundColor: colors.primary + '18',
+      borderWidth: 1,
+      borderColor: colors.primary + '50',
+    },
+    segText: {
+      fontFamily: fonts.sansSemi,
+      fontSize: 13,
+      color: colors.textTertiary,
+    },
+    segTextActive: {
+      color: colors.primary,
+      fontFamily: fonts.sansBold,
+    },
+    // monthly bar chart
+    barsCard: {
+      marginHorizontal: spacing.lg,
+      borderRadius: 22,
+      padding: spacing.lg,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? '#233050' : colors.border,
+      backgroundColor: isDark ? '#0F1E34' : colors.surface,
+      ...shadows.md,
+    },
+    barsHeaderLabel: {
+      fontFamily: fonts.sansBold,
+      fontSize: 10.5,
+      letterSpacing: 0.14,
+      color: colors.textTertiary,
+      textTransform: 'uppercase',
+      marginBottom: spacing.md,
+    },
+    barsRow: {
+      flexDirection: 'row',
+      height: 160,
+      alignItems: 'flex-end',
+      gap: 8,
+      marginTop: 4,
+    },
+    barCol: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 5,
+    },
+    barKValue: {
+      fontFamily: fonts.monoSemi,
+      fontSize: 10.5,
+      color: colors.textTertiary,
+    },
+    barShape: {
+      width: '100%',
+      borderTopLeftRadius: 6,
+      borderTopRightRadius: 6,
+    },
+    barMonth: {
+      fontFamily: fonts.sansSemi,
+      fontSize: 10,
+      color: colors.textTertiary,
+      textTransform: 'uppercase',
+      marginTop: 4,
+    },
+    barMonthActive: {
+      color: colors.primary,
+      fontFamily: fonts.sansBold,
+    },
+    // monthly list
+    monthlyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    monthlyLeft: {
+      flex: 1, gap: 3,
+    },
+    monthlyName: {
+      fontFamily: fonts.sansSemi,
+      fontSize: 14.5,
+      color: colors.textPrimary,
+      textTransform: 'capitalize',
+    },
+    monthlyCount: {
+      fontFamily: fonts.sans,
+      fontSize: 11.5,
+      color: colors.textTertiary,
+    },
+    monthlyRight: {
+      alignItems: 'flex-end', gap: 3,
+    },
+    monthlyAmount: {
+      fontFamily: fonts.monoSemi,
+      fontSize: 14,
+      color: colors.textPrimary,
+      letterSpacing: -0.3,
+    },
+    monthlyDeltaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    monthlyDelta: {
+      fontFamily: fonts.sansBold,
+      fontSize: 11,
     },
     // hero
     heroCard: {
@@ -102,15 +378,17 @@ export default function StatsScreen({ navigation }) {
       marginBottom: 14,
     },
     heroCurrency: {
-      fontSize: 26, fontWeight: '400',
+      fontFamily: fonts.displayMedium,
+      fontSize: 26,
       color: colors.textTertiary,
       letterSpacing: -0.5,
     },
     heroAmount: {
-      fontSize: 44, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 48,
       color: colors.textPrimary,
       letterSpacing: -2,
-      lineHeight: 50,
+      lineHeight: 54,
     },
     miniRow: {
       flexDirection: 'row', gap: 10,
@@ -131,7 +409,8 @@ export default function StatsScreen({ navigation }) {
       textTransform: 'uppercase',
     },
     miniValue: {
-      fontSize: 17, fontWeight: '600',
+      fontFamily: fonts.display,
+      fontSize: 17,
       color: colors.textPrimary,
       letterSpacing: -0.3,
     },
@@ -159,7 +438,8 @@ export default function StatsScreen({ navigation }) {
       marginBottom: 4,
     },
     donutTotal: {
-      fontSize: 22, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 22,
       color: colors.textPrimary,
       letterSpacing: -0.6,
     },
@@ -178,7 +458,8 @@ export default function StatsScreen({ navigation }) {
       marginBottom: spacing.sm,
     },
     sectionTitle: {
-      fontSize: 18, fontWeight: '700',
+      fontFamily: fonts.display,
+      fontSize: 18,
       color: colors.textPrimary,
       letterSpacing: -0.4,
     },
@@ -228,7 +509,8 @@ export default function StatsScreen({ navigation }) {
       gap: 2,
     },
     catAmount: {
-      fontSize: 14, fontWeight: '700',
+      fontFamily: fonts.monoSemi,
+      fontSize: 13,
       letterSpacing: -0.3,
     },
     catPct: {
@@ -314,6 +596,41 @@ export default function StatsScreen({ navigation }) {
             </Text>
           </View>
 
+          {/* Segmented control */}
+          <View style={styles.segmented}>
+            <TouchableOpacity
+              style={[styles.segBtn, view === 'category' && styles.segBtnActive]}
+              onPress={() => setView('category')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.segText, view === 'category' && styles.segTextActive]}>
+                Por categoría
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.segBtn, view === 'month' && styles.segBtnActive]}
+              onPress={() => setView('month')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.segText, view === 'month' && styles.segTextActive]}>
+                Mes a mes
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {view === 'month' && (
+            <MonthlyView
+              monthlyData={monthlyData}
+              colors={colors}
+              isDark={isDark}
+              currency={currency}
+              styles={styles}
+              t={t}
+            />
+          )}
+
+          {view === 'category' && (
+          <>
           {/* hero card */}
           <View style={styles.heroCard}>
             {/* glow */}
@@ -473,6 +790,8 @@ export default function StatsScreen({ navigation }) {
                 )}
               </Text>
             </View>
+          )}
+          </>
           )}
         </ScrollView>
       </SafeAreaView>

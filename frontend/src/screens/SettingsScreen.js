@@ -5,7 +5,7 @@ import { formatCurrency } from '../utils/currency';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
-import { spacing, borderRadius, shadows } from '../theme';
+import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
@@ -60,7 +60,8 @@ export default function SettingsScreen({ navigation }) {
       paddingBottom: spacing.lg,
     },
     title: {
-      fontSize: 26, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 26,
       color: colors.textPrimary,
       letterSpacing: -0.6,
     },
@@ -93,7 +94,8 @@ export default function SettingsScreen({ navigation }) {
       borderColor: colors.primary + '40',
     },
     avatarText: {
-      fontSize: 24, fontWeight: '700',
+      fontFamily: fonts.displayBold,
+      fontSize: 24,
       color: colors.primary,
     },
     profileInfo: { flex: 1, gap: 6 },
@@ -134,8 +136,8 @@ export default function SettingsScreen({ navigation }) {
       gap: 3,
     },
     statValue: {
+      fontFamily: fonts.display,
       fontSize: 15,
-      fontWeight: '700',
       color: colors.textPrimary,
       letterSpacing: -0.3,
     },
