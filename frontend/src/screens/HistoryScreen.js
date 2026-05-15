@@ -21,27 +21,34 @@ const CATEGORIES = [
   'Servicios', 'Entretenimiento', 'Ropa', 'Educación', 'Otros',
 ];
 
-function formatDate(dateStr) {
+function formatDate(dateStr, lang = 'es') {
   const d = new Date(dateStr + 'T00:00:00');
-  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const monthsEs = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const monthsEn = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const months = lang === 'en' ? monthsEn : monthsEs;
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function formatDayHeader(dateStr) {
+function formatDayHeader(dateStr, t, lang) {
   const d = new Date(dateStr + 'T00:00:00');
-  const months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  const days = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  const monthsEs = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const monthsEn = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const daysEs = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  const daysEn = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const months = lang === 'en' ? monthsEn : monthsEs;
+  const days = lang === 'en' ? daysEn : daysEs;
   const today = new Date();
   const yest = new Date(today.getTime() - 24 * 60 * 60 * 1000);
   const isToday = d.toDateString() === today.toDateString();
   const isYest = d.toDateString() === yest.toDateString();
-  if (isToday) return `HOY · ${d.getDate()} ${months[d.getMonth()]}`;
-  if (isYest) return `AYER · ${d.getDate()} ${months[d.getMonth()]}`;
+  if (isToday) return `${t.history.today} · ${d.getDate()} ${months[d.getMonth()]}`;
+  if (isYest) return `${t.history.yesterday} · ${d.getDate()} ${months[d.getMonth()]}`;
   return `${d.getDate()} ${months[d.getMonth()]} · ${days[d.getDay()]}`;
 }
 
-function HistoryRow({ expense, colors, currency, onPress }) {
+function HistoryRow({ expense, colors, currency, t, lang, onPress }) {
   const catColor = colors.categories[expense.category] || colors.textTertiary;
+  const catLabel = t?.categories?.[expense.category] || expense.category;
   return (
     <TouchableOpacity
       onPress={() => onPress?.(expense)}
@@ -71,11 +78,11 @@ function HistoryRow({ expense, colors, currency, onPress }) {
           }}>
             <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: catColor }} />
             <Text style={{ fontSize: 11, fontWeight: '600', color: catColor }}>
-              {expense.category}
+              {catLabel}
             </Text>
           </View>
           <Text style={{ fontSize: 11.5, color: colors.textQuaternary }}>
-            {formatDate(expense.date)}
+            {formatDate(expense.date, lang)}
           </Text>
         </View>
       </View>
@@ -429,7 +436,7 @@ export default function HistoryScreen({ navigation }) {
           stickySectionHeadersEnabled={false}
           renderSectionHeader={({ section }) => (
             <View style={styles.dayHeader}>
-              <Text style={styles.dayHeaderLabel}>{formatDayHeader(section.title)}</Text>
+              <Text style={styles.dayHeaderLabel}>{formatDayHeader(section.title, t, settings.language)}</Text>
               <Text style={styles.dayHeaderTotal}>
                 {formatCurrency(section.total, currency)}
               </Text>
@@ -457,6 +464,8 @@ export default function HistoryScreen({ navigation }) {
                   expense={item}
                   colors={colors}
                   currency={currency}
+                  t={t}
+                  lang={settings.language}
                   onPress={setSelectedExpense}
                 />
               </View>
@@ -493,7 +502,7 @@ export default function HistoryScreen({ navigation }) {
 
               {/* summary card */}
               <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Total gastado</Text>
+                <Text style={styles.summaryLabel}>{t.history.totalSpent}</Text>
                 <View style={styles.summaryAmountRow}>
                   <Text style={styles.summaryCurrency}>{currency.symbol}</Text>
                   <Text style={styles.summaryAmount}>
@@ -501,7 +510,7 @@ export default function HistoryScreen({ navigation }) {
                   </Text>
                 </View>
                 <Text style={styles.summaryCount}>
-                  {expenses.length} {expenses.length === 1 ? 'movimiento' : 'movimientos'}
+                  {expenses.length} {expenses.length === 1 ? t.history.movement : t.history.movements}
                   {selectedCategory ? ` · ${selectedCategory}` : ''}
                 </Text>
               </View>
@@ -569,7 +578,7 @@ export default function HistoryScreen({ navigation }) {
                         styles.chipText,
                         isSel && { color: cc },
                       ]}>
-                        {cat}
+                        {t.categories?.[cat] || cat}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -578,7 +587,7 @@ export default function HistoryScreen({ navigation }) {
 
               {expenses.length > 0 && (
                 <View style={styles.sectionHead}>
-                  <Text style={styles.sectionTitle}>Movimientos</Text>
+                  <Text style={styles.sectionTitle}>{t.history.section}</Text>
                   <Text style={styles.sectionMeta}>
                     {formatCurrency(total, currency)}
                   </Text>

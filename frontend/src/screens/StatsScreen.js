@@ -50,11 +50,13 @@ function MonthBar({ height, color, delay, isCurrent }) {
   );
 }
 
-function MonthlyView({ monthlyData, colors, isDark, currency, styles, t }) {
+function MonthlyView({ monthlyData, colors, isDark, currency, styles, t, lang }) {
   if (!monthlyData.length) return null;
 
   const maxVal = Math.max(...monthlyData.map(m => m.total), 1);
-  const monthsAbbr = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const monthsAbbr = lang === 'en'
+    ? ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+    : ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 
   const fmtK = (n) => {
     if (n === 0) return '—';
@@ -76,7 +78,7 @@ function MonthlyView({ monthlyData, colors, isDark, currency, styles, t }) {
   return (
     <>
       <View style={styles.barsCard}>
-        <Text style={styles.barsHeaderLabel}>Comparativo últimos 6 meses</Text>
+        <Text style={styles.barsHeaderLabel}>{t.stats.monthCompare}</Text>
         <View style={styles.barsRow}>
           {monthlyData.map((m, i) => {
             const isCurrent = i === monthlyData.length - 1;
@@ -104,7 +106,7 @@ function MonthlyView({ monthlyData, colors, isDark, currency, styles, t }) {
 
       {/* Monthly list */}
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Por mes</Text>
+        <Text style={styles.sectionTitle}>{t.stats.byMonthHeader}</Text>
       </View>
       <View style={styles.listCard}>
         {listData.map((m, i) => {
@@ -119,7 +121,7 @@ function MonthlyView({ monthlyData, colors, isDark, currency, styles, t }) {
                   {t.months[m.month]} {m.year}
                 </Text>
                 <Text style={styles.monthlyCount}>
-                  {m.count} {m.count === 1 ? 'movimiento' : 'movimientos'}
+                  {m.count} {m.count === 1 ? t.history.movement : t.history.movements}
                 </Text>
               </View>
               <View style={styles.monthlyRight}>
@@ -604,7 +606,7 @@ export default function StatsScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <Text style={[styles.segText, view === 'category' && styles.segTextActive]}>
-                Por categoría
+                {t.stats.byCategoryTab}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -613,7 +615,7 @@ export default function StatsScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <Text style={[styles.segText, view === 'month' && styles.segTextActive]}>
-                Mes a mes
+                {t.stats.byMonthTab}
               </Text>
             </TouchableOpacity>
           </View>
@@ -626,6 +628,7 @@ export default function StatsScreen({ navigation }) {
               currency={currency}
               styles={styles}
               t={t}
+              lang={settings.language}
             />
           )}
 
@@ -646,7 +649,7 @@ export default function StatsScreen({ navigation }) {
               </Svg>
             </View>
 
-            <Text style={styles.heroLabel}>Total del mes</Text>
+            <Text style={styles.heroLabel}>{t.stats.totalMonth}</Text>
             <View style={styles.heroRow}>
               <Text style={styles.heroCurrency}>{currency.symbol}</Text>
               <Text style={styles.heroAmount}>
@@ -709,12 +712,12 @@ export default function StatsScreen({ navigation }) {
                   );
                 })()}
                 <View style={styles.donutCenter} pointerEvents="none">
-                  <Text style={styles.donutLabel}>Total</Text>
+                  <Text style={styles.donutLabel}>{t.stats.total}</Text>
                   <Text style={styles.donutTotal}>
                     {formatCurrency(totalSpent, currency)}
                   </Text>
                   <Text style={styles.donutSub}>
-                    {categories.length} {categories.length === 1 ? 'categoría' : 'categorías'}
+                    {categories.length} {categories.length === 1 ? t.stats.category : t.stats.categoriesPlural}
                   </Text>
                 </View>
               </View>
@@ -723,9 +726,9 @@ export default function StatsScreen({ navigation }) {
 
           {/* by category */}
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Por categoría</Text>
+            <Text style={styles.sectionTitle}>{t.stats.byCategoryHeader}</Text>
             {categories.length > 0 && (
-              <Text style={styles.sectionMeta}>{categories.length} totales</Text>
+              <Text style={styles.sectionMeta}>{t.stats.categoriesCount.replace('{n}', categories.length)}</Text>
             )}
           </View>
 
@@ -753,9 +756,9 @@ export default function StatsScreen({ navigation }) {
                         containerSize={42}
                       />
                       <View style={styles.barLeft}>
-                        <Text style={styles.catName}>{cat.category}</Text>
+                        <Text style={styles.catName}>{t.categories?.[cat.category] || cat.category}</Text>
                         <Text style={styles.catCount}>
-                          {cat.count} {cat.count === 1 ? 'gasto' : 'gastos'}
+                          {cat.count} {cat.count === 1 ? t.stats.expense : t.stats.expensesPlural}
                         </Text>
                       </View>
                       <View style={styles.barRight}>

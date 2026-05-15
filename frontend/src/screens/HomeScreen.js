@@ -17,7 +17,6 @@ import BudgetBar from '../components/BudgetBar';
 import BottomSheet from '../components/BottomSheet';
 import IncomesModal from '../components/IncomesModal';
 import ExpenseDetailModal from '../components/ExpenseDetailModal';
-import SparklineChart from '../components/SparklineChart';
 import ErrorBanner from '../components/ErrorBanner';
 
 // ── Trend icons ───────────────────────────────────────────────────────────────
@@ -37,8 +36,9 @@ function TrendDown({ size = 12, color }) {
 }
 
 // ── ExpenseRow ─────────────────────────────────────────────────────────────────
-function ExpenseRow({ expense, colors, currency, onPress, flash }) {
+function ExpenseRow({ expense, colors, currency, t, lang, onPress, flash }) {
   const catColor = colors.categories[expense.category] || colors.textTertiary;
+  const catLabel = t?.categories?.[expense.category] || expense.category;
   const bgAnim = useRef(new Animated.Value(flash ? 1 : 0)).current;
 
   useEffect(() => {
@@ -96,11 +96,11 @@ function ExpenseRow({ expense, colors, currency, onPress, flash }) {
           }}>
             <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: catColor }} />
             <Text style={{ fontSize: 11, fontWeight: '600', color: catColor }}>
-              {expense.category}
+              {catLabel}
             </Text>
           </View>
           <Text style={{ fontSize: 11.5, color: colors.textQuaternary }}>
-            {formatDate(expense.date)}
+            {formatDate(expense.date, lang)}
           </Text>
         </View>
       </View>
@@ -113,14 +113,16 @@ function ExpenseRow({ expense, colors, currency, onPress, flash }) {
   );
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr, lang = 'es') {
   const d = new Date(dateStr + 'T00:00:00');
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const monthsEs = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const monthsEn = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const months = lang === 'en' ? monthsEn : monthsEs;
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
 // ── MiniStat card ─────────────────────────────────────────────────────────────
-function MiniStat({ label, value, dir, color, colors, currency, onPress }) {
+function MiniStat({ label, value, dir, color, colors, currency, isDark, onPress }) {
   const Icon = dir === 'up' ? TrendUp : TrendDown;
   return (
     <TouchableOpacity
@@ -128,10 +130,10 @@ function MiniStat({ label, value, dir, color, colors, currency, onPress }) {
       activeOpacity={onPress ? 0.7 : 1}
       style={{
         flex: 1,
-        backgroundColor: 'rgba(10, 18, 34, 0.55)',
+        backgroundColor: isDark ? 'rgba(10, 18, 34, 0.55)' : colors.surfaceElevated,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: colors.borderLight,
+        borderColor: isDark ? colors.borderLight : colors.border,
         padding: 12,
         paddingLeft: 14,
         gap: 4,
@@ -232,22 +234,6 @@ export default function HomeScreen({ navigation }) {
     await loadData();
     setRefreshing(false);
   };
-
-  // Daily totals for sparkline
-  const sparklineData = useMemo(() => {
-    if (!expenses.length) return [];
-    const now = new Date();
-    const today = now.getDate();
-    const totals = new Array(today).fill(0);
-    expenses.forEach(e => {
-      const d = new Date(e.date + 'T00:00:00');
-      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-        const idx = d.getDate() - 1;
-        if (idx >= 0 && idx < today) totals[idx] += e.amount;
-      }
-    });
-    return totals.length >= 2 ? totals : [];
-  }, [expenses]);
 
   // Overall budget computed from category budgets
   const { totalBudgetLimit, budgetPct, budgetColor, daysRemaining } = useMemo(() => {
@@ -671,7 +657,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.heroBadge}>
                 <TrendUp size={11} color={colors.success} />
                 <Text style={styles.heroBadgeText}>
-                  {summary.expense_count || 0} gastos
+                  {t.home.expensesCount.replace('{n}', summary.expense_count || 0)}
                 </Text>
               </View>
             )}
@@ -685,35 +671,26 @@ export default function HomeScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* Sparkline */}
-          {sparklineData.length >= 2 && (
-            <View style={{ marginBottom: 14 }}>
-              <SparklineChart
-                data={sparklineData}
-                height={46}
-                color={colors.primary}
-              />
-            </View>
-          )}
-
           {/* Mini stats */}
           <View style={styles.heroMetaRow}>
             <MiniStat
-              label="Ingresos"
+              label={t.home.incomeLabel}
               value={summary?.total_income || 0}
               dir="up"
               color={colors.success}
               colors={colors}
               currency={currency}
+              isDark={isDark}
               onPress={() => setIncomesModalVisible(true)}
             />
             <MiniStat
-              label="Gastado"
+              label={t.home.spentLabel}
               value={summary?.total_spent || 0}
               dir="down"
               color={colors.danger}
               colors={colors}
               currency={currency}
+              isDark={isDark}
             />
           </View>
         </View>
@@ -723,7 +700,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.budgetCard}>
             <View style={styles.budgetTopRow}>
               <View>
-                <Text style={styles.budgetTitle}>Presupuesto mensual</Text>
+                <Text style={styles.budgetTitle}>{t.home.budgetMonthly}</Text>
                 <Text style={styles.budgetSubtitle}>
                   {formatCurrency(summary?.total_spent || 0, currency)} / {formatCurrency(totalBudgetLimit, currency)}
                 </Text>
@@ -735,10 +712,10 @@ export default function HomeScreen({ navigation }) {
             </View>
             <View style={styles.budgetFootRow}>
               <Text style={styles.budgetFootText}>
-                Promedio diario · {formatCurrency(summary?.daily_average || 0, currency)}
+                {t.home.dailyAverageDot} · {formatCurrency(summary?.daily_average || 0, currency)}
               </Text>
               <Text style={styles.budgetFootText}>
-                Quedan {daysRemaining} días
+                {t.home.daysLeft.replace('{n}', daysRemaining)}
               </Text>
             </View>
           </View>
@@ -755,26 +732,26 @@ export default function HomeScreen({ navigation }) {
             primary
             colors={colors}
             icon={<MaterialIcons name="add" size={16} color={colors.textInverse} />}
-            label="Agregar gasto"
+            label={t.home.quickAddExpense}
             onPress={() => openSheet('expense')}
           />
           <QuickAction
             colors={colors}
             icon={<MaterialIcons name="trending-up" size={16} color={colors.success} />}
-            label="Ingreso"
+            label={t.home.quickIncome}
             onPress={() => openSheet('income')}
           />
         </ScrollView>
 
         {/* ── Section header ───────────────────────────────────────────── */}
         <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+          <Text style={styles.sectionTitle}>{t.home.sectionRecent}</Text>
           <TouchableOpacity
             style={styles.viewAllBtn}
             onPress={() => navigation?.navigate?.('History')}
             activeOpacity={0.7}
           >
-            <Text style={styles.viewAllText}>Ver todo</Text>
+            <Text style={styles.viewAllText}>{t.home.viewAll}</Text>
             <MaterialIcons name="chevron-right" size={14} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
@@ -822,6 +799,8 @@ export default function HomeScreen({ navigation }) {
               expense={item}
               colors={colors}
               currency={currency}
+              t={t}
+              lang={settings.language}
               onPress={setSelectedExpense}
               flash={item.id === flashId}
             />

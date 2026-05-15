@@ -72,7 +72,7 @@ export default function SettingsScreen({ navigation }) {
         Alert.alert('Archivo guardado', fileUri);
       }
     } catch (err) {
-      Alert.alert('Error al exportar', err?.message || String(err));
+      Alert.alert(t.settings.exportError, err?.message || String(err));
     } finally {
       setExporting(false);
     }
@@ -87,18 +87,18 @@ export default function SettingsScreen({ navigation }) {
 
   const handleDeleteData = () => {
     Alert.alert(
-      'Eliminar todos los datos',
-      'Se eliminarán todos tus gastos e ingresos. Tu cuenta se mantiene. Esta acción no se puede deshacer.',
+      t.settings.deleteDataTitle,
+      t.settings.deleteDataMsg,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t.auth.cancel, style: 'cancel' },
         {
-          text: 'Eliminar',
+          text: t.incomes.delete,
           style: 'destructive',
           onPress: async () => {
             try {
               await api.deleteData();
               incrementDataVersion();
-              Alert.alert('Listo', 'Tus datos fueron eliminados.');
+              Alert.alert(t.settings.done, t.settings.deleteDataDone);
             } catch (err) {
               Alert.alert('Error', err?.message || String(err));
             }
@@ -110,21 +110,21 @@ export default function SettingsScreen({ navigation }) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      '¿Eliminar cuenta?',
-      'Se eliminarán todos tus datos y tu cuenta permanentemente.',
+      t.settings.deleteAccountTitle,
+      t.settings.deleteAccountMsg,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t.auth.cancel, style: 'cancel' },
         {
-          text: 'Continuar',
+          text: t.settings.continue,
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Confirmación final',
-              'Esta acción es irreversible. ¿Estás seguro?',
+              t.settings.deleteAccountFinal,
+              t.settings.deleteAccountFinalMsg,
               [
-                { text: 'Cancelar', style: 'cancel' },
+                { text: t.auth.cancel, style: 'cancel' },
                 {
-                  text: 'Eliminar cuenta',
+                  text: t.settings.deleteAccountConfirm,
                   style: 'destructive',
                   onPress: async () => {
                     try {
@@ -431,7 +431,7 @@ export default function SettingsScreen({ navigation }) {
                 </Text>
                 <View style={styles.planBadge}>
                   <MaterialIcons name="star" size={11} color={colors.primary} />
-                  <Text style={styles.planText}>Plan Gratis</Text>
+                  <Text style={styles.planText}>{t.settings.planFreeBadge}</Text>
                 </View>
               </View>
             </View>
@@ -441,24 +441,24 @@ export default function SettingsScreen({ navigation }) {
               <View style={styles.statCell}>
                 <Text style={styles.statValue}>
                   {user?.days_since_joined != null
-                    ? `${user.days_since_joined} días`
+                    ? `${user.days_since_joined} ${t.settings.days}`
                     : '—'}
                 </Text>
-                <Text style={styles.statLabel}>Antigüedad</Text>
+                <Text style={styles.statLabel}>{t.settings.antiquity}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
                 <Text style={styles.statValue}>
                   {user?.expense_count_month != null
-                    ? `${user.expense_count_month} movs`
+                    ? `${user.expense_count_month} ${t.settings.movs}`
                     : '—'}
                 </Text>
-                <Text style={styles.statLabel}>Este mes</Text>
+                <Text style={styles.statLabel}>{t.settings.thisMonth}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
-                <Text style={styles.statValue}>Free</Text>
-                <Text style={styles.statLabel}>Plan</Text>
+                <Text style={styles.statValue}>{t.settings.planFree}</Text>
+                <Text style={styles.statLabel}>{t.settings.plan}</Text>
               </View>
             </View>
           </View>
@@ -520,7 +520,7 @@ export default function SettingsScreen({ navigation }) {
                   <View style={styles.currencyBadge}>
                     <Text style={styles.currencySymbol}>{c.symbol}</Text>
                   </View>
-                  <Text style={styles.optionName}>{c.name}</Text>
+                  <Text style={styles.optionName}>{t.currencies?.[c.code] || c.name}</Text>
                   {isSel && (
                     <View style={styles.checkDot}>
                       <MaterialIcons name="check" size={14} color={colors.textInverse} />
@@ -557,7 +557,7 @@ export default function SettingsScreen({ navigation }) {
           </View>
 
           {/* Datos */}
-          <Text style={styles.sectionLabel}>Datos</Text>
+          <Text style={styles.sectionLabel}>{t.settings.dataSection}</Text>
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.linkRow}
@@ -569,7 +569,7 @@ export default function SettingsScreen({ navigation }) {
                 <MaterialIcons name="file-download" size={18} color={colors.primary} />
               </View>
               <Text style={[styles.toggleTitle, { flex: 1 }]}>
-                {exporting ? 'Exportando…' : 'Exportar a CSV'}
+                {exporting ? t.settings.exporting : t.settings.exportCsv}
               </Text>
               {exporting
                 ? <ActivityIndicator size="small" color={colors.primary} />
@@ -580,8 +580,8 @@ export default function SettingsScreen({ navigation }) {
                 <MaterialIcons name="cloud-done" size={18} color={colors.success} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>Backup en la nube</Text>
-                <Text style={styles.toggleSub}>Sincronización activa</Text>
+                <Text style={styles.toggleTitle}>{t.settings.cloudBackup}</Text>
+                <Text style={styles.toggleSub}>{t.settings.syncActive}</Text>
               </View>
               <MaterialIcons name="check-circle" size={18} color={colors.success} />
             </TouchableOpacity>

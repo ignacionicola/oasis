@@ -137,7 +137,7 @@ function FloatInput({ label, value, onChangeText, icon, secure, onToggleSecure, 
   );
 }
 
-function PasswordStrength({ password, colors }) {
+function PasswordStrength({ password, colors, t }) {
   const strength = useMemo(() => {
     let s = 0;
     if (password.length >= 6) s++;
@@ -149,7 +149,7 @@ function PasswordStrength({ password, colors }) {
 
   if (!password) return null;
 
-  const labels = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
+  const labels = [t.auth.strengthWeak, t.auth.strengthOk, t.auth.strengthGood, t.auth.strengthStrong];
   const segColors = [colors.danger, colors.warning, '#A8C840', colors.success];
   const label = labels[Math.max(0, strength - 1)] || labels[0];
   const color = segColors[Math.max(0, strength - 1)] || segColors[0];
@@ -218,7 +218,7 @@ export default function AuthScreen() {
 
   const repeatError =
     isRegister && repeatPassword && password !== repeatPassword
-      ? 'No coincide'
+      ? t.auth.passwordsDontMatch
       : null;
 
   const validate = () => {
@@ -504,7 +504,7 @@ export default function AuthScreen() {
               <Text style={styles.logoText}>P</Text>
             </View>
             <Text style={styles.appName}>Plata</Text>
-            <Text style={styles.tagline}>Tu economía, ordenada</Text>
+            <Text style={styles.tagline}>{t.auth.tagline}</Text>
           </View>
 
           {/* Tab toggle with animated indicator */}
@@ -547,12 +547,12 @@ export default function AuthScreen() {
             </View>
 
             <Text style={styles.headline}>
-              {isRegister ? 'Creá tu cuenta' : 'Bienvenido de vuelta'}
+              {isRegister ? t.auth.headlineRegister : t.auth.headlineLogin}
             </Text>
             <Text style={styles.subhead}>
               {isRegister
-                ? 'Solo email y contraseña. Cero papeleo.'
-                : 'Seguimos donde lo dejamos.'}
+                ? t.auth.subRegister
+                : t.auth.subLogin}
             </Text>
 
             <FloatInput
@@ -583,7 +583,7 @@ export default function AuthScreen() {
               fieldKey="password"
             />
 
-            {isRegister && <PasswordStrength password={password} colors={colors} />}
+            {isRegister && <PasswordStrength password={password} colors={colors} t={t} />}
 
             {isRegister && (
               <FloatInput
@@ -605,7 +605,7 @@ export default function AuthScreen() {
 
             {!isRegister && (
               <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
-                <Text style={styles.forgotText}>¿Olvidaste la contraseña?</Text>
+                <Text style={styles.forgotText}>{t.auth.forgot}</Text>
               </TouchableOpacity>
             )}
 
@@ -630,7 +630,7 @@ export default function AuthScreen() {
             {/* Divider */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>O CONTINUAR CON</Text>
+              <Text style={styles.dividerText}>{t.auth.orContinueWith}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -639,7 +639,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 style={styles.oauthBtn}
                 activeOpacity={0.7}
-                onPress={() => Alert.alert('Google', 'Próximamente')}
+                onPress={() => Alert.alert('Google', t.auth.comingSoon)}
               >
                 <GoogleLogo size={18} />
                 <Text style={styles.oauthText}>Google</Text>
@@ -647,7 +647,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 style={styles.oauthBtn}
                 activeOpacity={0.7}
-                onPress={() => Alert.alert('Apple', 'Próximamente')}
+                onPress={() => Alert.alert('Apple', t.auth.comingSoon)}
               >
                 <AppleLogo size={18} color={isDark ? '#FFFFFF' : '#000000'} />
                 <Text style={styles.oauthText}>Apple</Text>
@@ -658,11 +658,11 @@ export default function AuthScreen() {
             <TouchableOpacity
               style={styles.magicBtn}
               activeOpacity={0.7}
-              onPress={() => Alert.alert('Link mágico', 'Te enviaremos un link a tu email para iniciar sesión sin contraseña.')}
+              onPress={() => Alert.alert(t.auth.magicLinkTitle, t.auth.magicLinkMsg)}
             >
               <MaterialIcons name="bolt" size={16} color={colors.primary} />
               <Text style={styles.magicText}>
-                {isRegister ? 'Crear con link mágico' : 'Iniciar con link mágico'}
+                {isRegister ? t.auth.magicRegister : t.auth.magicLogin}
               </Text>
             </TouchableOpacity>
           </View>
@@ -670,13 +670,13 @@ export default function AuthScreen() {
           {/* Footer microcopy */}
           <Text style={styles.footerText}>
             {isRegister
-              ? 'Al crear cuenta aceptás los '
-              : 'Protegido con cifrado de extremo a extremo · '}
+              ? t.auth.termsPrefix
+              : t.auth.e2eFooter}
             {isRegister && (
               <>
-                <Text style={styles.footerLink}>Términos</Text>
-                <Text> y </Text>
-                <Text style={styles.footerLink}>Política de privacidad</Text>
+                <Text style={styles.footerLink}>{t.auth.terms}</Text>
+                <Text>{t.auth.and}</Text>
+                <Text style={styles.footerLink}>{t.auth.privacy}</Text>
               </>
             )}
           </Text>

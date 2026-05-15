@@ -9,6 +9,7 @@ import Svg, {
 } from 'react-native-svg';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
+import useTranslation from '../i18n';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -179,6 +180,7 @@ export default function WelcomeScreen({ onLogin, onSignup }) {
   const colors = useTheme();
   const { settings } = useSettings();
   const isDark = settings.theme === 'dark';
+  const t = useTranslation();
 
   const balanceVal = useCountUp(77000, 1200, 400);
 
@@ -423,12 +425,12 @@ export default function WelcomeScreen({ onLogin, onSignup }) {
         {/* Hero text */}
         <View style={styles.heroBlock}>
           <Text style={styles.h1}>
-            Sabé a dónde{' '}
-            <Text style={styles.h1Italic}>se va</Text>
-            {' '}tu plata.
+            {t.welcome.h1Before}
+            <Text style={styles.h1Italic}>{t.welcome.h1Italic}</Text>
+            {t.welcome.h1After}
           </Text>
           <Text style={styles.sub}>
-            Una app simple para registrar gastos, ver para dónde se va el sueldo y no llegar justo a fin de mes.
+            {t.welcome.sub}
           </Text>
         </View>
 
@@ -449,7 +451,7 @@ export default function WelcomeScreen({ onLogin, onSignup }) {
 
           <View style={styles.teaserEyebrowRow}>
             <PulseDot color={colors.primary} />
-            <Text style={styles.teaserEyebrow}>Vista previa · Mayo</Text>
+            <Text style={styles.teaserEyebrow}>{t.welcome.previewLabel}</Text>
           </View>
           <View style={styles.teaserAmountRow}>
             <Text style={styles.teaserCurrency}>$</Text>
@@ -464,27 +466,27 @@ export default function WelcomeScreen({ onLogin, onSignup }) {
         <View style={styles.pillarsRow}>
           <View style={styles.pillar}>
             <Text style={styles.pillarValue}>8s</Text>
-            <Text style={styles.pillarLabel}>Para cargar un gasto</Text>
+            <Text style={styles.pillarLabel}>{t.welcome.pillar1}</Text>
           </View>
           <View style={styles.pillar}>
             <Text style={styles.pillarValue}>$0</Text>
-            <Text style={styles.pillarLabel}>Para siempre</Text>
+            <Text style={styles.pillarLabel}>{t.welcome.pillar2}</Text>
           </View>
           <View style={styles.pillar}>
             <Text style={[styles.pillarValue, { fontSize: 24 }]}>∞</Text>
-            <Text style={styles.pillarLabel}>Categorías y presupuestos</Text>
+            <Text style={styles.pillarLabel}>{t.welcome.pillar3}</Text>
           </View>
         </View>
 
         {/* CTAs */}
         <View style={styles.ctaContainer}>
           <TouchableOpacity style={styles.primaryCta} onPress={onSignup} activeOpacity={0.85}>
-            <Text style={styles.primaryCtaText}>Empezar gratis</Text>
+            <Text style={styles.primaryCtaText}>{t.welcome.ctaSignup}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryCta} onPress={onLogin} activeOpacity={0.7}>
-            <Text style={styles.secondaryCtaText}>Ya tengo cuenta</Text>
+            <Text style={styles.secondaryCtaText}>{t.welcome.ctaLogin}</Text>
           </TouchableOpacity>
-          <Text style={styles.microcopy}>Sin tarjeta · Sin anuncios · Datos cifrados</Text>
+          <Text style={styles.microcopy}>{t.welcome.microcopy}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
