@@ -82,6 +82,14 @@ class ApiService {
     await this.removeToken();
   }
 
+  async deleteData() {
+    return this.request('/auth/data', { method: 'DELETE' });
+  }
+
+  async deleteAccount() {
+    return this.request('/auth/account', { method: 'DELETE' });
+  }
+
   // ── Expenses ──
 
   async createExpense(expenseData) {
@@ -111,6 +119,28 @@ class ApiService {
 
   async deleteExpense(id) {
     return this.request(`/expenses/${id}`, { method: 'DELETE' });
+  }
+
+  async exportExpenses() {
+    const token = await this.getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${BASE_URL}/expenses/export`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (response.status === 401) {
+      await this.removeToken();
+      throw new Error('Sesión expirada. Iniciá sesión de nuevo.');
+    }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error ${response.status}`);
+    }
+
+    return await response.blob();
   }
 
   async scanTicket(imageUri) {

@@ -1,16 +1,17 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Switch } from 'react-native';
-import api from '../services/api';
-import { formatCurrency } from '../utils/currency';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import useTranslation from '../i18n';
 import SwipeableScreen from '../components/SwipeableScreen';
+import api from '../services/api';
 
 const CURRENCIES = [
   { code: 'ARS', symbol: '$',   name: 'Peso argentino' },
@@ -27,28 +28,118 @@ const LANGUAGES = [
 export default function SettingsScreen({ navigation }) {
   const colors = useTheme();
   const { settings, setTheme, setCurrency, setLanguage } = useSettings();
-  const { currency } = settings;
   const { user, logout } = useAuth();
   const isDark = settings.theme === 'dark';
   const t = useTranslation();
 
-  const [summary, setSummary] = useState(null);
-  const [notifEnabled, setNotifEnabled] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [budgetAlertEnabled, setBudgetAlertEnabled] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
-    const now = new Date();
-    api.getMonthSummary(now.getMonth() + 1, now.getFullYear())
-      .then(setSummary)
-      .catch(() => {});
-  }, []);
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const blob = await api.exportExpenses();
+
+      // Blob → base64 con FileReader
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result;
+          if (typeof result !== 'string') {
+            reject(new Error('No se pudo leer el archivo'));
+            return;
+          }
+          const idx = result.indexOf(',');
+          resolve(idx >= 0 ? result.substring(idx + 1) : result);
+        };
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(blob);
+      });
+
+      const fileUri = FileSystem.cacheDirectory + 'plata_gastos.csv';
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType?.Base64 || 'base64',
+      });
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Exportar gastos',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        Alert.alert('Archivo guardado', fileUri);
+      }
+    } catch (err) {
+      Alert.alert('Error al exportar', err?.message || String(err));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(t.auth.logoutConfirm, t.auth.logoutConfirmMsg, [
       { text: t.auth.cancel, style: 'cancel' },
       { text: t.auth.logout, style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handleDeleteData = () => {
+    Alert.alert(
+      'Eliminar todos los datos',
+      'Se eliminarán todos tus gastos e ingresos. Tu cuenta se mantiene. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.deleteData();
+              Alert.alert('Listo', 'Tus datos fueron eliminados.');
+            } catch (err) {
+              Alert.alert('Error', err?.message || String(err));
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '¿Eliminar cuenta?',
+      'Se eliminarán todos tus datos y tu cuenta permanentemente.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Continuar',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Confirmación final',
+              'Esta acción es irreversible. ¿Estás seguro?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Eliminar cuenta',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await api.deleteAccount();
+                      await logout();
+                    } catch (err) {
+                      Alert.alert('Error', err?.message || String(err));
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
   };
 
   const styles = useMemo(() => StyleSheet.create({
@@ -348,16 +439,20 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.statsStrip}>
               <View style={styles.statCell}>
                 <Text style={styles.statValue}>
-                  {summary ? formatCurrency(summary.total_spent || 0, currency) : '—'}
+                  {user?.days_since_joined != null
+                    ? `${user.days_since_joined} días`
+                    : '—'}
                 </Text>
-                <Text style={styles.statLabel}>En Plata</Text>
+                <Text style={styles.statLabel}>Antigüedad</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
                 <Text style={styles.statValue}>
-                  {summary?.expense_count || 0}
+                  {user?.expense_count_month != null
+                    ? `${user.expense_count_month} movs`
+                    : '—'}
                 </Text>
-                <Text style={styles.statLabel}>Movs</Text>
+                <Text style={styles.statLabel}>Este mes</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
@@ -460,65 +555,24 @@ export default function SettingsScreen({ navigation }) {
             })}
           </View>
 
-          {/* Preferencias */}
-          <Text style={styles.sectionLabel}>Preferencias</Text>
-          <View style={styles.card}>
-            <View style={styles.toggleRow}>
-              <View style={[styles.toggleIcon, { backgroundColor: colors.primary + '18' }]}>
-                <MaterialIcons name="notifications-none" size={18} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>Notificaciones</Text>
-                <Text style={styles.toggleSub}>Resumen diario y alertas</Text>
-              </View>
-              <Switch
-                value={notifEnabled}
-                onValueChange={setNotifEnabled}
-                trackColor={{ false: colors.border, true: colors.primary + '60' }}
-                thumbColor={notifEnabled ? colors.primary : colors.textTertiary}
-              />
-            </View>
-            <View style={styles.toggleRow}>
-              <View style={[styles.toggleIcon, { backgroundColor: colors.info + '18' }]}>
-                <MaterialIcons name="fingerprint" size={18} color={colors.info} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>Bloqueo biométrico</Text>
-                <Text style={styles.toggleSub}>Huella o Face ID al abrir</Text>
-              </View>
-              <Switch
-                value={biometricEnabled}
-                onValueChange={setBiometricEnabled}
-                trackColor={{ false: colors.border, true: colors.primary + '60' }}
-                thumbColor={biometricEnabled ? colors.primary : colors.textTertiary}
-              />
-            </View>
-            <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
-              <View style={[styles.toggleIcon, { backgroundColor: colors.warning + '18' }]}>
-                <MaterialIcons name="warning-amber" size={18} color={colors.warning} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>Alerta de presupuesto</Text>
-                <Text style={styles.toggleSub}>Avisar al 80% del límite</Text>
-              </View>
-              <Switch
-                value={budgetAlertEnabled}
-                onValueChange={setBudgetAlertEnabled}
-                trackColor={{ false: colors.border, true: colors.primary + '60' }}
-                thumbColor={budgetAlertEnabled ? colors.primary : colors.textTertiary}
-              />
-            </View>
-          </View>
-
           {/* Datos */}
           <Text style={styles.sectionLabel}>Datos</Text>
           <View style={styles.card}>
-            <TouchableOpacity style={styles.linkRow} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.linkRow}
+              activeOpacity={0.7}
+              onPress={handleExport}
+              disabled={exporting}
+            >
               <View style={[styles.toggleIcon, { backgroundColor: colors.primary + '15' }]}>
                 <MaterialIcons name="file-download" size={18} color={colors.primary} />
               </View>
-              <Text style={styles.toggleTitle}>Exportar a CSV</Text>
-              <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />
+              <Text style={[styles.toggleTitle, { flex: 1 }]}>
+                {exporting ? 'Exportando…' : 'Exportar a CSV'}
+              </Text>
+              {exporting
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />}
             </TouchableOpacity>
             <TouchableOpacity style={styles.linkRow} activeOpacity={0.7}>
               <View style={[styles.toggleIcon, { backgroundColor: colors.success + '15' }]}>
@@ -531,19 +585,35 @@ export default function SettingsScreen({ navigation }) {
               <MaterialIcons name="check-circle" size={18} color={colors.success} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.linkRow, { borderBottomWidth: 0 }]}
+              style={styles.linkRow}
               activeOpacity={0.7}
-              onPress={() => Alert.alert('Eliminar datos', 'Esta acción no se puede deshacer.', [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Eliminar', style: 'destructive' },
-              ])}
+              onPress={handleDeleteData}
             >
               <View style={[styles.toggleIcon, { backgroundColor: colors.danger + '15' }]}>
-                <MaterialIcons name="delete-outline" size={18} color={colors.danger} />
+                <MaterialIcons name="delete-sweep" size={18} color={colors.danger} />
               </View>
-              <Text style={[styles.toggleTitle, { color: colors.danger }]}>
-                Eliminar todos los datos
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.toggleTitle, { color: colors.danger }]}>
+                  {t.settings.deleteData}
+                </Text>
+                <Text style={styles.toggleSub}>{t.settings.deleteDataSub}</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.linkRow, { borderBottomWidth: 0 }]}
+              activeOpacity={0.7}
+              onPress={handleDeleteAccount}
+            >
+              <View style={[styles.toggleIcon, { backgroundColor: colors.danger + '15' }]}>
+                <MaterialIcons name="person-remove" size={18} color={colors.danger} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.toggleTitle, { color: colors.danger }]}>
+                  {t.settings.deleteAccount}
+                </Text>
+                <Text style={styles.toggleSub}>{t.settings.deleteAccountSub}</Text>
+              </View>
               <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />
             </TouchableOpacity>
           </View>

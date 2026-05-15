@@ -86,6 +86,10 @@ export default {
     currency: 'Moneda',
     language: 'Idioma',
     version: 'Plata v0.1.0',
+    deleteData: 'Eliminar datos',
+    deleteDataSub: 'Borrar todos tus gastos e ingresos',
+    deleteAccount: 'Eliminar cuenta',
+    deleteAccountSub: 'Eliminar tu cuenta permanentemente',
   },
   months: {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',

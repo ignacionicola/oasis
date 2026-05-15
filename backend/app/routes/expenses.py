@@ -6,8 +6,11 @@ El POST /expenses ejecuta el pipeline completo:
   Input Agent → Data Normalizer → Analysis Agent → DB
 """
 
+import csv
+import io
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import extract, func, and_
 
@@ -97,6 +100,42 @@ def list_expenses(
     )
 
     return [ExpenseResponse.model_validate(e) for e in expenses]
+
+
+@router.get("/export")
+def export_expenses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Exporta todos los gastos del usuario a un CSV (UTF-8 con BOM)."""
+    expenses = (
+        db.query(Expense)
+        .filter(Expense.user_id == current_user.id)
+        .order_by(Expense.date.desc(), Expense.created_at.desc())
+        .all()
+    )
+
+    buffer = io.StringIO()
+    # BOM para que Excel reconozca UTF-8
+    buffer.write("﻿")
+    writer = csv.writer(buffer)
+    writer.writerow(["Fecha", "Descripción", "Categoría", "Monto"])
+    for e in expenses:
+        writer.writerow([
+            e.date.strftime("%d/%m/%Y"),
+            e.description,
+            e.category,
+            f"{e.amount:.2f}",
+        ])
+
+    buffer.seek(0)
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="plata_gastos.csv"',
+        },
+    )
 
 
 @router.get("/{expense_id}", response_model=ExpenseResponse)

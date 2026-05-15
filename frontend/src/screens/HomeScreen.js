@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Rect, Defs, RadialGradient, Stop, Circle, Path } from 'react-native-svg';
+import Svg, { Rect, Defs, RadialGradient, Stop, Path } from 'react-native-svg';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
@@ -19,16 +19,6 @@ import IncomesModal from '../components/IncomesModal';
 import ExpenseDetailModal from '../components/ExpenseDetailModal';
 import SparklineChart from '../components/SparklineChart';
 import ErrorBanner from '../components/ErrorBanner';
-
-// ── Notification bell ─────────────────────────────────────────────────────────
-function BellIcon({ color }) {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
-      <Path d="M10 19a2 2 0 004 0" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
-    </Svg>
-  );
-}
 
 // ── Trend icons ───────────────────────────────────────────────────────────────
 function TrendUp({ size = 12, color }) {
@@ -330,9 +320,6 @@ export default function HomeScreen({ navigation }) {
 
   const handleAddExpense = async (data) => {
     const result = await api.createExpense(data);
-    if (result.duplicate_warning) {
-      Alert.alert('Posible duplicado', result.duplicate_warning.message, [{ text: 'Entendido' }]);
-    }
     incrementDataVersion();
     await loadData();
     if (result?.id) {
@@ -409,22 +396,6 @@ export default function HomeScreen({ navigation }) {
       fontSize: 12,
       color: colors.textSecondary,
       letterSpacing: 0.2,
-    },
-    bellButton: {
-      width: 40, height: 40,
-      borderRadius: 12,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    notifDot: {
-      position: 'absolute',
-      top: 9, right: 9,
-      width: 6, height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.primary,
     },
     // hero
     heroCard: {
@@ -644,10 +615,6 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.logoLabel}>Plata · {monthName} {yr}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
-            <BellIcon color={colors.textSecondary} />
-            <View style={styles.notifDot} />
-          </TouchableOpacity>
         </View>
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
@@ -796,11 +763,6 @@ export default function HomeScreen({ navigation }) {
             icon={<MaterialIcons name="trending-up" size={16} color={colors.success} />}
             label="Ingreso"
             onPress={() => openSheet('income')}
-          />
-          <QuickAction
-            colors={colors}
-            icon={<MaterialIcons name="bolt" size={16} color={colors.warning} />}
-            label="Recurrente"
           />
         </ScrollView>
 

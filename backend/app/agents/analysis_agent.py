@@ -1,10 +1,9 @@
 """
 Analysis Agent — Analiza gastos normalizados.
 
-Orquesta tres skills:
+Orquesta:
 1. Categorización automática (Claude API + fallback reglas)
-2. Detección de duplicados
-3. Alertas de presupuesto
+2. Alertas de presupuesto
 
 Recibe un NormalizedExpense del Input Agent y devuelve
 el gasto categorizado con metadata de análisis.
@@ -15,7 +14,6 @@ from sqlalchemy.orm import Session
 
 from app.utils.normalizer import NormalizedExpense
 from app.skills.categorizer import categorize_expense
-from app.skills.duplicate_detector import check_duplicate
 from app.skills.budget_alert import check_budget_alert
 from app.models import Expense
 
@@ -44,7 +42,6 @@ class AnalysisAgent:
             {
                 "category": str,
                 "confidence": float,
-                "duplicate_warning": dict | None,
                 "budget_alert": dict | None,
             }
         """
@@ -57,18 +54,9 @@ class AnalysisAgent:
             category = cat_result["category"]
             confidence = cat_result["confidence"]
 
-        # 2. Detección de duplicados
-        duplicate_warning = check_duplicate(
-            db=db,
-            amount=normalized.amount,
-            expense_date=normalized.date,
-            description=normalized.description,
-        )
-
         return {
             "category": category,
             "confidence": confidence,
-            "duplicate_warning": duplicate_warning,
             "budget_alert": None,
         }
 

@@ -19,6 +19,8 @@ class UserResponse(BaseModel):
     email: EmailStr
     is_active: bool
     created_at: dt.datetime | None
+    days_since_joined: int
+    expense_count_month: int
 
     model_config = {"from_attributes": True}
 

@@ -86,6 +86,10 @@ export default {
     currency: 'Currency',
     language: 'Language',
     version: 'Plata v0.1.0',
+    deleteData: 'Delete data',
+    deleteDataSub: 'Delete all your expenses and income',
+    deleteAccount: 'Delete account',
+    deleteAccountSub: 'Permanently delete your account',
   },
   months: {
     1: 'January', 2: 'February', 3: 'March', 4: 'April',
