@@ -11,7 +11,7 @@ import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
 import useTranslation from '../i18n';
 import api from '../services/api';
-import AddIncomeModal from './AddIncomeModal';
+import BottomSheet from './BottomSheet';
 
 export default function IncomesModal({ visible, month, year, onClose, onUpdate }) {
   const colors = useTheme();
@@ -224,10 +224,11 @@ export default function IncomesModal({ visible, month, year, onClose, onUpdate }
         </View>
       </SafeAreaView>
 
-      <AddIncomeModal
+      <BottomSheet
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
-        onSubmit={handleAdd}
+        initialType="income"
+        onSubmitIncome={handleAdd}
       />
     </Modal>
   );

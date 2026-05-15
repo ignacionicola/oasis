@@ -20,7 +20,15 @@
       "PowerShell(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -match \"Wi-Fi|Ethernet\" -and $_.IPAddress -notmatch \"^169\\\\.\" } | Select-Object IPAddress, InterfaceAlias | Format-Table -AutoSize)",
       "PowerShell(Stop-Process -Id 24568 -Force -ErrorAction SilentlyContinue)",
       "Bash(npx expo *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\(pkg.dependencies['react-native-svg'] || 'NOT FOUND'\\)\")",
+      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\('expo-linear-gradient:', pkg.dependencies['expo-linear-gradient'] || 'NOT FOUND'\\); console.log\\('react-native-svg:', pkg.dependencies['react-native-svg'] || 'NOT FOUND'\\);\")",
+      "Bash(dir /s /b *i18n*)",
+      "Bash(dir src\\\\components\\\\CategoryIcon.js src\\\\components\\\\SparklineChart.js src\\\\components\\\\BottomSheet.js src\\\\screens\\\\HomeScreen.js src\\\\screens\\\\SettingsScreen.js)",
+      "Bash(findstr /v \"^$\")",
+      "Bash(dir src\\\\components\\\\CategoryIcon.js src\\\\components\\\\SparklineChart.js src\\\\components\\\\BottomSheet.js)",
+      "Bash(Sparkline)",
+      "Bash(BottomSheet\")"
     ]
   }
 }

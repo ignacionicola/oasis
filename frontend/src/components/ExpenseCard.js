@@ -1,17 +1,16 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { spacing, borderRadius, categoryIcons } from '../theme';
+import { spacing, borderRadius } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
+import CategoryIcon from './CategoryIcon';
 
 export default function ExpenseCard({ expense, onPress }) {
   const colors = useTheme();
   const { settings } = useSettings();
   const { currency } = settings;
   const categoryColor = colors.categories[expense.category] || colors.textTertiary;
-  const iconName = categoryIcons[expense.category] || 'more-horiz';
 
   const styles = useMemo(() => StyleSheet.create({
     card: {
@@ -21,13 +20,6 @@ export default function ExpenseCard({ expense, onPress }) {
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
       gap: spacing.md,
-    },
-    iconContainer: {
-      width: 44,
-      height: 44,
-      borderRadius: borderRadius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     content: {
       flex: 1,
@@ -71,9 +63,7 @@ export default function ExpenseCard({ expense, onPress }) {
       onPress={() => onPress?.(expense)}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconContainer, { backgroundColor: categoryColor + '15' }]}>
-        <MaterialIcons name={iconName} size={22} color={categoryColor} />
-      </View>
+      <CategoryIcon category={expense.category} color={categoryColor} size={22} containerSize={44} />
 
       <View style={styles.content}>
         <Text style={styles.description} numberOfLines={1}>

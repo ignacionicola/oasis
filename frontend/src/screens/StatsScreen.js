@@ -1,27 +1,28 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  RefreshControl, Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Circle } from 'react-native-svg';
-import { spacing, borderRadius, shadows, categoryIcons } from '../theme';
+import Svg, { Circle, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { spacing, borderRadius, shadows } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
 import useTranslation from '../i18n';
 import api from '../services/api';
+import CategoryIcon from '../components/CategoryIcon';
 import ErrorBanner from '../components/ErrorBanner';
 import SwipeableScreen from '../components/SwipeableScreen';
-
-const screenWidth = Dimensions.get('window').width;
 
 export default function StatsScreen({ navigation }) {
   const colors = useTheme();
   const { settings, dataVersion } = useSettings();
   const { currency } = settings;
+  const isDark = settings.theme === 'dark';
   const t = useTranslation();
+
   const [categories, setCategories] = useState([]);
   const [summary, setSummary] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,70 +53,96 @@ export default function StatsScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const maxTotal = Math.max(...categories.map(c => c.total), 1);
+  const maxTotal = Math.max(...(categories.map(c => c.total)), 1);
 
   const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    content: {
-      paddingBottom: spacing.xxl,
-    },
-    header: {
+    safe: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: 110 },
+    // header
+    headerRow: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
-      paddingBottom: spacing.xs,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      paddingBottom: spacing.lg,
     },
     title: {
-      fontSize: 22,
-      fontWeight: '700',
+      fontSize: 26, fontWeight: '700',
       color: colors.textPrimary,
-      letterSpacing: -0.5,
+      letterSpacing: -0.6,
     },
     subtitle: {
-      fontSize: 14,
-      color: colors.textTertiary,
-      marginTop: 2,
-    },
-    summaryRow: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      marginTop: spacing.lg,
-    },
-    statCard: {
-      flex: 1,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.md,
-      padding: spacing.md,
-      alignItems: 'center',
-      ...shadows.sm,
-    },
-    statValue: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      letterSpacing: -0.5,
-    },
-    statLabel: {
-      fontSize: 11,
+      fontSize: 13.5,
       color: colors.textTertiary,
       marginTop: 4,
-      fontWeight: '500',
-      letterSpacing: 0.3,
+      textTransform: 'capitalize',
     },
+    // hero
+    heroCard: {
+      marginHorizontal: spacing.lg,
+      borderRadius: 28,
+      padding: 22,
+      paddingBottom: 18,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? '#233050' : colors.border,
+      backgroundColor: isDark ? '#0F1E34' : colors.surface,
+      ...shadows.md,
+    },
+    heroLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.12,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+      marginBottom: 6,
+    },
+    heroRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 4,
+      marginBottom: 14,
+    },
+    heroCurrency: {
+      fontSize: 26, fontWeight: '400',
+      color: colors.textTertiary,
+      letterSpacing: -0.5,
+    },
+    heroAmount: {
+      fontSize: 44, fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: -2,
+      lineHeight: 50,
+    },
+    miniRow: {
+      flexDirection: 'row', gap: 10,
+    },
+    miniStat: {
+      flex: 1,
+      backgroundColor: isDark ? 'rgba(10, 18, 34, 0.55)' : colors.background,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      padding: 12,
+      gap: 4,
+    },
+    miniLabel: {
+      fontSize: 10, fontWeight: '700',
+      color: colors.textTertiary,
+      letterSpacing: 0.08,
+      textTransform: 'uppercase',
+    },
+    miniValue: {
+      fontSize: 17, fontWeight: '600',
+      color: colors.textPrimary,
+      letterSpacing: -0.3,
+    },
+    // donut
     donutSection: {
       alignItems: 'center',
       marginTop: spacing.xl,
       paddingHorizontal: spacing.lg,
     },
     donutWrapper: {
-      width: 260,
-      height: 260,
+      width: 240, height: 240,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -124,92 +151,101 @@ export default function StatsScreen({ navigation }) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    donutTotal: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      letterSpacing: -0.5,
-    },
     donutLabel: {
-      fontSize: 12,
+      fontSize: 10, fontWeight: '700',
+      color: colors.textTertiary,
+      letterSpacing: 0.08,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    donutTotal: {
+      fontSize: 22, fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: -0.6,
+    },
+    donutSub: {
+      fontSize: 11,
       color: colors.textTertiary,
       marginTop: 2,
-      textTransform: 'lowercase',
     },
-    section: {
-      marginTop: spacing.lg,
+    // section
+    sectionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
       paddingHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+      marginBottom: spacing.sm,
     },
     sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 18, fontWeight: '700',
       color: colors.textPrimary,
-      marginBottom: spacing.md,
+      letterSpacing: -0.4,
     },
-    chartCard: {
+    sectionMeta: {
+      fontSize: 12,
+      color: colors.textTertiary,
+    },
+    // category list card
+    listCard: {
+      marginHorizontal: spacing.lg,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.lg,
-      padding: spacing.lg,
-      gap: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
       ...shadows.sm,
+      overflow: 'hidden',
     },
     barRow: {
-      gap: spacing.sm,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+      gap: 8,
     },
-    barLabel: {
+    barRowLast: {
+      borderBottomWidth: 0,
+    },
+    barTop: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: 12,
     },
-    barIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: borderRadius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    barLabelText: {
+    barLeft: {
       flex: 1,
+      gap: 2,
     },
-    barCategory: {
-      fontSize: 14,
-      fontWeight: '500',
+    catName: {
+      fontSize: 14, fontWeight: '600',
       color: colors.textPrimary,
     },
-    barCount: {
+    catCount: {
       fontSize: 11,
       color: colors.textTertiary,
     },
-    barTrackContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginLeft: 40,
+    barRight: {
+      alignItems: 'flex-end',
+      gap: 2,
+    },
+    catAmount: {
+      fontSize: 14, fontWeight: '700',
+      letterSpacing: -0.3,
+    },
+    catPct: {
+      fontSize: 11, fontWeight: '600',
+      color: colors.textTertiary,
     },
     barTrack: {
-      flex: 1,
-      height: 8,
-      backgroundColor: colors.borderLight,
-      borderRadius: 4,
+      height: 6,
+      backgroundColor: isDark ? 'rgba(30,50,80,0.6)' : colors.borderLight,
+      borderRadius: 3,
       overflow: 'hidden',
+      marginLeft: 56,
     },
     barFill: {
-      height: '100%',
-      borderRadius: 4,
+      height: '100%', borderRadius: 3,
     },
-    barAmount: {
-      fontSize: 13,
-      fontWeight: '600',
-      minWidth: 50,
-      textAlign: 'right',
-    },
-    barPercentage: {
-      fontSize: 12,
-      color: colors.textTertiary,
-      fontWeight: '500',
-      minWidth: 30,
-      textAlign: 'right',
-    },
+    // empty
     emptyState: {
       alignItems: 'center',
       paddingVertical: spacing.xl,
@@ -219,186 +255,227 @@ export default function StatsScreen({ navigation }) {
       fontSize: 14,
       color: colors.textTertiary,
     },
+    // insight
     insightCard: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.sm,
       marginTop: spacing.lg,
       marginHorizontal: spacing.lg,
-      backgroundColor: colors.accentLight,
-      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary + '14',
+      borderRadius: borderRadius.lg,
       padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.primary + '30',
+    },
+    insightIcon: {
+      width: 32, height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.primary + '25',
+      alignItems: 'center', justifyContent: 'center',
     },
     insightText: {
       flex: 1,
-      fontSize: 14,
+      fontSize: 13,
       color: colors.textPrimary,
-      lineHeight: 20,
+      lineHeight: 19,
     },
-  }), [colors]);
+  }), [colors, isDark]);
+
+  const totalSpent = summary?.total_spent || 0;
 
   return (
     <SwipeableScreen navigation={navigation} currentIndex={1} totalTabs={4}>
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {error && (
-          <ErrorBanner
-            message={error}
-            onRetry={() => { setError(null); loadData(); }}
-          />
-        )}
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {error && (
+            <ErrorBanner
+              message={error}
+              onRetry={() => { setError(null); loadData(); }}
+            />
+          )}
 
-        <View style={styles.header}>
-          <Text style={styles.title}>{t.stats.title}</Text>
-          <Text style={styles.subtitle}>
-            {summary?.month_number ? t.months[summary.month_number] : ''} {summary?.year || ''}
-          </Text>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              {summary ? formatCurrency(summary.total_spent, currency) : '—'}
+          {/* header */}
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>{t.stats.title}</Text>
+            <Text style={styles.subtitle}>
+              {summary?.month_number ? t.months[summary.month_number] : ''} {summary?.year || ''}
             </Text>
-            <Text style={styles.statLabel}>{t.stats.totalSpent}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              {summary ? formatCurrency(summary.daily_average, currency) : '—'}
-            </Text>
-            <Text style={styles.statLabel}>{t.stats.dailyAverage}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{summary?.expense_count || 0}</Text>
-            <Text style={styles.statLabel}>{t.stats.expenses}</Text>
-          </View>
-        </View>
 
-        {categories.length > 0 && summary?.total_spent > 0 && (
-          <View style={styles.donutSection}>
-            <View style={styles.donutWrapper}>
-              {(() => {
-                const SIZE = 260;
-                const CENTER = SIZE / 2;
-                const STROKE_WIDTH = 30;
-                const R = 95;
-                const C = 2 * Math.PI * R;
-                let cumulative = 0;
-                return (
-                  <Svg width={SIZE} height={SIZE}>
-                    <Circle
-                      cx={CENTER}
-                      cy={CENTER}
-                      r={R}
-                      fill="transparent"
-                      stroke={colors.borderLight}
-                      strokeWidth={STROKE_WIDTH}
-                    />
-                    {categories.map((cat) => {
-                      const pct = cat.total / summary.total_spent;
-                      const dashLength = pct * C;
-                      const offset = -cumulative * C;
-                      cumulative += pct;
-                      const catColor = colors.categories[cat.category] || colors.textTertiary;
-                      return (
-                        <Circle
-                          key={cat.category}
-                          cx={CENTER}
-                          cy={CENTER}
-                          r={R}
-                          fill="transparent"
-                          stroke={catColor}
-                          strokeWidth={STROKE_WIDTH}
-                          strokeDasharray={`${dashLength} ${C}`}
-                          strokeDashoffset={offset}
-                          strokeLinecap="butt"
-                          transform={`rotate(-90 ${CENTER} ${CENTER})`}
-                        />
-                      );
-                    })}
-                  </Svg>
-                );
-              })()}
-              <View style={styles.donutCenter} pointerEvents="none">
-                <Text style={styles.donutTotal}>
-                  {formatCurrency(summary.total_spent, currency)}
+          {/* hero card */}
+          <View style={styles.heroCard}>
+            {/* glow */}
+            <View style={{ position: 'absolute', top: -35, right: -35, width: 200, height: 200 }}>
+              <Svg width={200} height={200}>
+                <Defs>
+                  <RadialGradient id="sglow" cx="50%" cy="50%" r="50%">
+                    <Stop offset="0%" stopColor={colors.primary} stopOpacity="0.18" />
+                    <Stop offset="100%" stopColor={colors.primary} stopOpacity="0" />
+                  </RadialGradient>
+                </Defs>
+                <Rect x={0} y={0} width={200} height={200} fill="url(#sglow)" />
+              </Svg>
+            </View>
+
+            <Text style={styles.heroLabel}>Total del mes</Text>
+            <View style={styles.heroRow}>
+              <Text style={styles.heroCurrency}>{currency.symbol}</Text>
+              <Text style={styles.heroAmount}>
+                {totalSpent.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+              </Text>
+            </View>
+
+            <View style={styles.miniRow}>
+              <View style={styles.miniStat}>
+                <Text style={styles.miniLabel}>Promedio diario</Text>
+                <Text style={styles.miniValue}>
+                  {formatCurrency(summary?.daily_average || 0, currency)}
                 </Text>
-                <Text style={styles.donutLabel}>total</Text>
+              </View>
+              <View style={styles.miniStat}>
+                <Text style={styles.miniLabel}>Gastos</Text>
+                <Text style={styles.miniValue}>{summary?.expense_count || 0}</Text>
               </View>
             </View>
           </View>
-        )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.stats.byCategory}</Text>
-          <View style={styles.chartCard}>
+          {/* donut */}
+          {categories.length > 0 && totalSpent > 0 && (
+            <View style={styles.donutSection}>
+              <View style={styles.donutWrapper}>
+                {(() => {
+                  const SIZE = 240, CENTER = SIZE / 2;
+                  const STROKE = 26, R = 90;
+                  const C = 2 * Math.PI * R;
+                  let cum = 0;
+                  return (
+                    <Svg width={SIZE} height={SIZE}>
+                      <Circle
+                        cx={CENTER} cy={CENTER} r={R}
+                        fill="transparent"
+                        stroke={isDark ? 'rgba(30,50,80,0.6)' : colors.borderLight}
+                        strokeWidth={STROKE}
+                      />
+                      {categories.map(cat => {
+                        const pct = cat.total / totalSpent;
+                        const dash = pct * C;
+                        const off = -cum * C;
+                        cum += pct;
+                        const cc = colors.categories[cat.category] || colors.textTertiary;
+                        return (
+                          <Circle
+                            key={cat.category}
+                            cx={CENTER} cy={CENTER} r={R}
+                            fill="transparent"
+                            stroke={cc}
+                            strokeWidth={STROKE}
+                            strokeDasharray={`${dash} ${C}`}
+                            strokeDashoffset={off}
+                            strokeLinecap="butt"
+                            transform={`rotate(-90 ${CENTER} ${CENTER})`}
+                          />
+                        );
+                      })}
+                    </Svg>
+                  );
+                })()}
+                <View style={styles.donutCenter} pointerEvents="none">
+                  <Text style={styles.donutLabel}>Total</Text>
+                  <Text style={styles.donutTotal}>
+                    {formatCurrency(totalSpent, currency)}
+                  </Text>
+                  <Text style={styles.donutSub}>
+                    {categories.length} {categories.length === 1 ? 'categoría' : 'categorías'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* by category */}
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Por categoría</Text>
+            {categories.length > 0 && (
+              <Text style={styles.sectionMeta}>{categories.length} totales</Text>
+            )}
+          </View>
+
+          <View style={styles.listCard}>
             {categories.length === 0 ? (
               <View style={styles.emptyState}>
                 <MaterialIcons name="pie-chart-outline" size={40} color={colors.textTertiary} />
                 <Text style={styles.emptyText}>{t.stats.noData}</Text>
               </View>
             ) : (
-              categories.map((cat) => {
-                const catColor = colors.categories[cat.category] || colors.textTertiary;
-                const iconName = categoryIcons[cat.category] || 'more-horiz';
-                const barWidth = (cat.total / maxTotal) * 100;
-                const percentage = summary?.total_spent
-                  ? ((cat.total / summary.total_spent) * 100).toFixed(0)
-                  : 0;
-
+              categories.map((cat, i) => {
+                const cc = colors.categories[cat.category] || colors.textTertiary;
+                const barW = (cat.total / maxTotal) * 100;
+                const pct = totalSpent
+                  ? ((cat.total / totalSpent) * 100).toFixed(0)
+                  : '0';
+                const last = i === categories.length - 1;
                 return (
-                  <View key={cat.category} style={styles.barRow}>
-                    <View style={styles.barLabel}>
-                      <View style={[styles.barIcon, { backgroundColor: catColor + '15' }]}>
-                        <MaterialIcons name={iconName} size={16} color={catColor} />
-                      </View>
-                      <View style={styles.barLabelText}>
-                        <Text style={styles.barCategory}>{cat.category}</Text>
-                        <Text style={styles.barCount}>
-                          {cat.count} {t.stats.expenses.toLowerCase()}
+                  <View key={cat.category} style={[styles.barRow, last && styles.barRowLast]}>
+                    <View style={styles.barTop}>
+                      <CategoryIcon
+                        category={cat.category}
+                        color={cc}
+                        size={20}
+                        containerSize={42}
+                      />
+                      <View style={styles.barLeft}>
+                        <Text style={styles.catName}>{cat.category}</Text>
+                        <Text style={styles.catCount}>
+                          {cat.count} {cat.count === 1 ? 'gasto' : 'gastos'}
                         </Text>
                       </View>
-                    </View>
-                    <View style={styles.barTrackContainer}>
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            { width: `${barWidth}%`, backgroundColor: catColor },
-                          ]}
-                        />
+                      <View style={styles.barRight}>
+                        <Text style={[styles.catAmount, { color: cc }]}>
+                          {formatCurrency(cat.total, currency)}
+                        </Text>
+                        <Text style={styles.catPct}>{pct}%</Text>
                       </View>
-                      <Text style={[styles.barAmount, { color: catColor }]}>
-                        {formatCurrency(cat.total, currency)}
-                      </Text>
-                      <Text style={styles.barPercentage}>{percentage}%</Text>
+                    </View>
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, { width: `${barW}%`, backgroundColor: cc }]} />
                     </View>
                   </View>
                 );
               })
             )}
           </View>
-        </View>
 
-        {summary?.top_category && summary.top_category !== 'Ninguna' && (
-          <View style={styles.insightCard}>
-            <MaterialIcons name="lightbulb-outline" size={20} color={colors.accent} />
-            <Text style={styles.insightText}>
-              {t.stats.topCategory}{' '}
-              <Text style={{ fontWeight: '600' }}>{summary.top_category}</Text>
-              {summary.by_category?.[summary.top_category] && (
-                <Text>
-                  {' '}({formatCurrency(summary.by_category[summary.top_category], currency)})
-                </Text>
-              )}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          {/* insight */}
+          {summary?.top_category && summary.top_category !== 'Ninguna' && (
+            <View style={styles.insightCard}>
+              <View style={styles.insightIcon}>
+                <MaterialIcons name="lightbulb" size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.insightText}>
+                {t.stats.topCategory}{' '}
+                <Text style={{ fontWeight: '700' }}>{summary.top_category}</Text>
+                {summary.by_category?.[summary.top_category] && (
+                  <Text>
+                    {' '}({formatCurrency(summary.by_category[summary.top_category], currency)})
+                  </Text>
+                )}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
     </SwipeableScreen>
   );
 }

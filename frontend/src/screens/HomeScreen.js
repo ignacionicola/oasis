@@ -1,144 +1,209 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
+  View, Text, FlatList, TouchableOpacity, ScrollView,
   StyleSheet, RefreshControl, Alert, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import Svg, { Rect, Defs, RadialGradient, Stop, Circle, Path } from 'react-native-svg';
 import { spacing, borderRadius, shadows } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import { formatCurrency } from '../utils/currency';
 import useTranslation from '../i18n';
 import api from '../services/api';
-import ExpenseCard from '../components/ExpenseCard';
+import CategoryIcon from '../components/CategoryIcon';
 import BudgetBar from '../components/BudgetBar';
-import AddExpenseModal from '../components/AddExpenseModal';
+import BottomSheet from '../components/BottomSheet';
 import IncomesModal from '../components/IncomesModal';
 import ExpenseDetailModal from '../components/ExpenseDetailModal';
+import SparklineChart from '../components/SparklineChart';
 import ErrorBanner from '../components/ErrorBanner';
 
+// ── Notification bell ─────────────────────────────────────────────────────────
+function BellIcon({ color }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" />
+      <Path d="M10 19a2 2 0 004 0" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// ── Trend icons ───────────────────────────────────────────────────────────────
+function TrendUp({ size = 12, color }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 18l7-7 4 4 6-7M15 8h5v5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+function TrendDown({ size = 12, color }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 6l7 7 4-4 6 7M15 16h5v-5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// ── ExpenseRow ─────────────────────────────────────────────────────────────────
+function ExpenseRow({ expense, colors, currency, onPress }) {
+  const catColor = colors.categories[expense.category] || colors.textTertiary;
+
+  return (
+    <TouchableOpacity
+      onPress={() => onPress?.(expense)}
+      activeOpacity={0.7}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderLight,
+      }}
+    >
+      <CategoryIcon category={expense.category} color={catColor} size={22} containerSize={44} />
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 }}
+        >
+          {expense.description}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {/* category chip */}
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 5,
+            paddingHorizontal: 8, paddingVertical: 3,
+            backgroundColor: catColor + '18',
+            borderRadius: 999,
+          }}>
+            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: catColor }} />
+            <Text style={{ fontSize: 11, fontWeight: '600', color: catColor }}>
+              {expense.category}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 11.5, color: colors.textQuaternary }}>
+            {formatDate(expense.date)}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textPrimary, letterSpacing: -0.3 }}>
+        -{formatCurrency(expense.amount, currency)}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return `${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+// ── MiniStat card ─────────────────────────────────────────────────────────────
+function MiniStat({ label, value, dir, color, colors, currency, onPress }) {
+  const Icon = dir === 'up' ? TrendUp : TrendDown;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+      style={{
+        flex: 1,
+        backgroundColor: 'rgba(10, 18, 34, 0.55)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        padding: 12,
+        paddingLeft: 14,
+        gap: 4,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icon size={11} color={color} />
+        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textTertiary, letterSpacing: 0.08 }}>
+          {label.toUpperCase()}
+        </Text>
+      </View>
+      <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textPrimary, letterSpacing: -0.3 }}>
+        {formatCurrency(value, currency)}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// ── QuickAction ───────────────────────────────────────────────────────────────
+function QuickAction({ icon, label, primary, colors, onPress }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        backgroundColor: primary ? colors.primary : colors.surface,
+        borderRadius: borderRadius.full,
+        borderWidth: primary ? 0 : 1,
+        borderColor: colors.border,
+        flexShrink: 0,
+        ...shadows.sm,
+      }}
+    >
+      {icon}
+      <Text style={{
+        fontSize: 13,
+        fontWeight: '600',
+        color: primary ? colors.textInverse : colors.textPrimary,
+      }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 export default function HomeScreen({ navigation }) {
   const colors = useTheme();
   const { settings, incrementDataVersion } = useSettings();
   const { currency } = settings;
+  const isDark = settings.theme === 'dark';
   const t = useTranslation();
+
   const [summary, setSummary] = useState(null);
+  const [prevSummary, setPrevSummary] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [sheetType, setSheetType] = useState('expense');
   const [incomesModalVisible, setIncomesModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [error, setError] = useState(null);
-  const [scanning, setScanning] = useState(false);
-  const [prefillData, setPrefillData] = useState(null);
-
-  const runPicker = async (source) => {
-    console.log('[SCAN] 1. runPicker iniciado, source:', source);
-    Alert.alert('DEBUG 1', `runPicker source=${source}`);
-
-    if (source === 'camera') {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      console.log('[SCAN] 2. Permiso cámara:', status);
-      if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara.');
-        return null;
-      }
-    } else {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('[SCAN] 2. Permiso galería:', status);
-      if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería.');
-        return null;
-      }
-    }
-
-    console.log('[SCAN] 3. Cerrando modal antes de abrir picker');
-    setModalVisible(false);
-    await new Promise(r => setTimeout(r, 300));
-
-    let result;
-    try {
-      console.log('[SCAN] 4. Lanzando picker...');
-      if (source === 'camera') {
-        result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          quality: 0.7,
-        });
-      } else {
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.7,
-        });
-      }
-      console.log('[SCAN] 5. Picker volvió:', JSON.stringify(result).substring(0, 200));
-    } catch (err) {
-      console.log('[SCAN] ERROR picker:', err.message);
-      Alert.alert('DEBUG ERROR PICKER', err.message);
-      setModalVisible(true);
-      return null;
-    }
-
-    console.log('[SCAN] 6. Reabriendo modal');
-    setModalVisible(true);
-
-    if (result.canceled) {
-      console.log('[SCAN] 7. Usuario canceló');
-      Alert.alert('DEBUG', 'Picker canceled');
-      return null;
-    }
-
-    const uri = result.assets[0].uri;
-    console.log('[SCAN] 8. URI obtenida:', uri);
-    Alert.alert('DEBUG 8', `URI: ${uri.substring(0, 60)}...`);
-    return uri;
-  };
-
-  const scanFromUri = async (uri) => {
-    console.log('[SCAN] 9. Llamando api.scanTicket...');
-    Alert.alert('DEBUG 9', 'Enviando imagen al backend...');
-    setScanning(true);
-    try {
-      const scanned = await api.scanTicket(uri);
-      console.log('[SCAN] 10. Respuesta del backend:', JSON.stringify(scanned));
-      Alert.alert('DEBUG 10 OK', `Backend respondió: amount=${scanned.amount}, desc=${scanned.description}`);
-      setPrefillData({
-        amount: scanned.amount,
-        description: scanned.description || '',
-        confidence: scanned.confidence,
-        _ts: Date.now(),
-      });
-    } catch (err) {
-      console.log('[SCAN] ERROR backend:', err.message);
-      Alert.alert('DEBUG ERROR BACKEND', err.message);
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const handleRequestScan = async () => {
-    const uri = await runPicker('gallery');
-    if (uri) await scanFromUri(uri);
-  };
-
-  const handleRequestCamera = async () => {
-    const uri = await runPicker('camera');
-    if (uri) await scanFromUri(uri);
-  };
 
   const loadData = useCallback(async () => {
     try {
       const now = new Date();
-      const [summaryData, expenseData] = await Promise.all([
-        api.getMonthSummary(now.getMonth() + 1, now.getFullYear()),
-        api.getExpenses({ month: now.getMonth() + 1, year: now.getFullYear() }),
+      const curM = now.getMonth() + 1;
+      const curY = now.getFullYear();
+      const prevM = curM === 1 ? 12 : curM - 1;
+      const prevY = curM === 1 ? curY - 1 : curY;
+      const [summaryData, expenseData, prevData] = await Promise.all([
+        api.getMonthSummary(curM, curY),
+        api.getExpenses({ month: curM, year: curY }),
+        api.getMonthSummary(prevM, prevY).catch(() => null),
       ]);
       setSummary(summaryData);
       setExpenses(expenseData);
-    } catch (error) {
-      setError(error.message);
+      setPrevSummary(prevData);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -153,17 +218,49 @@ export default function HomeScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const handleAddExpense = async (expenseData) => {
-    const result = await api.createExpense(expenseData);
+  // Daily totals for sparkline
+  const sparklineData = useMemo(() => {
+    if (!expenses.length) return [];
+    const now = new Date();
+    const today = now.getDate();
+    const totals = new Array(today).fill(0);
+    expenses.forEach(e => {
+      const d = new Date(e.date + 'T00:00:00');
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+        const idx = d.getDate() - 1;
+        if (idx >= 0 && idx < today) totals[idx] += e.amount;
+      }
+    });
+    return totals.length >= 2 ? totals : [];
+  }, [expenses]);
 
+  // Overall budget computed from category budgets
+  const { totalBudgetLimit, budgetPct, budgetColor, daysRemaining } = useMemo(() => {
+    const limit = summary?.budget_status?.reduce((s, b) => s + (b.monthly_limit || 0), 0) || 0;
+    const pct = limit > 0 ? Math.min(100, Math.round(((summary?.total_spent || 0) / limit) * 100)) : 0;
+    const color = pct >= 90 ? colors.danger : pct >= 70 ? colors.warning : colors.primary;
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const remaining = daysInMonth - now.getDate();
+    return { totalBudgetLimit: limit, budgetPct: pct, budgetColor: color, daysRemaining: remaining };
+  }, [summary, colors]);
+
+  const openSheet = (type) => {
+    setSheetType(type);
+    setSheetVisible(true);
+  };
+
+  const handleAddExpense = async (data) => {
+    const result = await api.createExpense(data);
     if (result.duplicate_warning) {
-      Alert.alert(
-        'Posible duplicado',
-        result.duplicate_warning.message,
-        [{ text: 'Entendido' }]
-      );
+      Alert.alert('Posible duplicado', result.duplicate_warning.message, [{ text: 'Entendido' }]);
     }
+    incrementDataVersion();
+    await loadData();
+  };
 
+  const handleAddIncome = async (data) => {
+    await api.createIncome(data);
     incrementDataVersion();
     await loadData();
   };
@@ -179,135 +276,233 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  // ── hero values ──────────────────────────────────────────────────────────────
+  const hasIncome = (summary?.total_income || 0) > 0;
+  const heroAmount = hasIncome ? Math.abs(summary.available) : (summary?.total_spent || 0);
+  const heroAmountColor = hasIncome
+    ? (summary.available >= 0 ? colors.primary : colors.danger)
+    : colors.textPrimary;
+
+  // Trend vs prior month (based on spending — less spending is positive)
+  const trend = useMemo(() => {
+    if (!summary || !prevSummary || !prevSummary.total_spent) return null;
+    const diff = summary.total_spent - prevSummary.total_spent;
+    const pct = (diff / prevSummary.total_spent) * 100;
+    // less spent = positive (good)
+    return { pct: Math.abs(pct), down: diff < 0 };
+  }, [summary, prevSummary]);
+
   const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    topBar: {
+    safe: { flex: 1, backgroundColor: colors.background },
+    list: { paddingBottom: 110 },
+    // header
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
-      paddingBottom: spacing.xs,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
+      paddingBottom: spacing.lg,
     },
-    appName: {
-      fontSize: 22,
+    logoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 6,
+    },
+    logoBadge: {
+      width: 28, height: 28,
+      borderRadius: 8,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoBadgeText: {
+      color: colors.textInverse,
+      fontWeight: '800',
+      fontSize: 15,
+    },
+    logoLabel: {
+      fontSize: 12,
       fontWeight: '700',
-      color: colors.primary,
+      color: colors.textSecondary,
+      letterSpacing: 0.2,
+    },
+    bellButton: {
+      width: 40, height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    notifDot: {
+      position: 'absolute',
+      top: 9, right: 9,
+      width: 6, height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.primary,
+    },
+    // hero
+    heroCard: {
+      marginHorizontal: spacing.lg,
+      borderRadius: 28,
+      padding: 22,
+      paddingBottom: 18,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? '#233050' : colors.border,
+      backgroundColor: isDark ? '#0F1E34' : colors.surface,
+      ...shadows.md,
+    },
+    heroTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    heroEyebrow: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.12,
+      textTransform: 'uppercase',
+      color: isDark ? 'rgba(180,200,220,0.6)' : colors.textTertiary,
+    },
+    heroBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      backgroundColor: isDark ? 'rgba(22,40,64,0.9)' : colors.borderLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+    },
+    heroBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.success,
+    },
+    heroAmountRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 4,
+      marginBottom: 16,
+    },
+    heroCurrency: {
+      fontSize: 28,
+      fontWeight: '400',
+      color: isDark ? 'rgba(180,200,220,0.55)' : colors.textTertiary,
       letterSpacing: -0.5,
     },
-    monthLabel: {
-      fontSize: 14,
-      color: colors.textTertiary,
-      marginTop: 2,
+    heroAmount: {
+      fontSize: 52,
+      fontWeight: '700',
+      letterSpacing: -2.5,
+      lineHeight: 58,
     },
-    heroCard: {
-      margin: spacing.lg,
-      backgroundColor: colors.surfaceElevated,
+    heroMetaRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: spacing.md,
+    },
+    // budget
+    budgetCard: {
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      backgroundColor: colors.surface,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
       borderWidth: 1,
       borderColor: colors.border,
-      ...shadows.md,
-      shadowOpacity: 0.15,
-      elevation: 6,
-    },
-    heroLabel: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.textTertiary,
-      letterSpacing: 0.3,
-      textTransform: 'uppercase',
-    },
-    heroAmount: {
-      fontSize: 40,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      letterSpacing: -2,
-      marginTop: spacing.xs,
-    },
-    addIncomeButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      alignSelf: 'center',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginTop: spacing.xs,
-      marginBottom: spacing.sm,
-    },
-    addIncomeText: {
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    heroMeta: {
-      flexDirection: 'row',
-      marginTop: spacing.lg,
-      paddingTop: spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderLight,
-    },
-    heroStat: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    heroStatValue: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-    heroStatLabel: {
-      fontSize: 11,
-      color: colors.textTertiary,
-      marginTop: 2,
-    },
-    heroDivider: {
-      width: 1,
-      backgroundColor: colors.borderLight,
-    },
-    section: {
-      paddingHorizontal: spacing.lg,
-      marginBottom: spacing.md,
-    },
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.textPrimary,
-      marginBottom: spacing.md,
-    },
-    budgetCard: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
-      padding: spacing.lg,
-      gap: spacing.md,
       ...shadows.sm,
     },
-    budgetDivider: {
-      height: 1,
-      backgroundColor: colors.borderLight,
-    },
-    listHeader: {
+    budgetTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      marginBottom: 12,
+    },
+    budgetTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    budgetSubtitle: {
+      fontSize: 11,
+      color: colors.textTertiary,
+    },
+    budgetPct: {
+      fontSize: 26,
+      fontWeight: '700',
+      letterSpacing: -1,
+    },
+    budgetTrack: {
+      height: 8,
+      backgroundColor: isDark ? 'rgba(30,50,80,0.6)' : colors.borderLight,
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    budgetFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    budgetFootRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+    },
+    budgetFootText: {
+      fontSize: 11,
+      color: colors.textTertiary,
+    },
+    // quick actions
+    quickActionsScroll: {
+      marginTop: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    quickActionsContent: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: spacing.lg,
+    },
+    // section
+    sectionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
       paddingHorizontal: spacing.lg,
       marginBottom: spacing.sm,
     },
-    listCount: {
-      fontSize: 14,
+    sectionTitle: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    viewAllBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    viewAllText: {
+      fontSize: 12.5,
+      fontWeight: '600',
       color: colors.textTertiary,
-      fontWeight: '500',
     },
-    listContent: {
-      paddingBottom: 100,
+    expenseListCard: {
+      marginHorizontal: spacing.lg,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+      ...shadows.sm,
     },
-    separator: {
-      height: 1,
-      backgroundColor: colors.borderLight,
-      marginLeft: 82,
-    },
+    // empty
     emptyState: {
       alignItems: 'center',
       paddingVertical: spacing.xxl * 2,
@@ -322,126 +517,228 @@ export default function HomeScreen({ navigation }) {
       fontSize: 14,
       color: colors.textTertiary,
       textAlign: 'center',
+      paddingHorizontal: spacing.xl,
     },
+    // fab
     fab: {
       position: 'absolute',
       bottom: spacing.xl,
       right: spacing.lg,
-      width: 60,
-      height: 60,
+      width: 60, height: 60,
       borderRadius: 30,
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
       ...shadows.md,
-      elevation: 5,
+      elevation: 6,
     },
-  }), [colors]);
+  }), [colors, isDark]);
 
-  const renderHeader = () => (
-    <View>
-      <View style={styles.heroCard}>
-        {summary?.total_income > 0 ? (
-          <>
-            <Text style={styles.heroLabel}>{t.home.availableThisMonth}</Text>
-            <Text style={[
-              styles.heroAmount,
-              { color: summary.available >= 0 ? colors.primary : colors.danger },
-            ]}>
-              {formatCurrency(Math.abs(summary.available), currency)}
-            </Text>
-            <View style={styles.heroMeta}>
-              <TouchableOpacity
-                style={styles.heroStat}
-                onPress={() => setIncomesModalVisible(true)}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.heroStatValue}>
-                  {formatCurrency(summary.total_income, currency)}
-                </Text>
-                <Text style={[styles.heroStatLabel, { color: colors.primary }]}>
-                  {t.home.income}
-                </Text>
-              </TouchableOpacity>
-              <View style={styles.heroDivider} />
-              <View style={styles.heroStat}>
-                <Text style={styles.heroStatValue}>
-                  {formatCurrency(summary.total_spent, currency)}
-                </Text>
-                <Text style={styles.heroStatLabel}>{t.home.spent}</Text>
+  const renderHeader = () => {
+    const now = new Date();
+    const monthName = summary?.month_number ? t.months[summary.month_number] : '';
+    const yr = summary?.year || now.getFullYear();
+
+    return (
+      <View>
+        {/* ── App header ───────────────────────────────────────────────── */}
+        <View style={styles.headerRow}>
+          <View>
+            <View style={styles.logoRow}>
+              <View style={styles.logoBadge}>
+                <Text style={styles.logoBadgeText}>P</Text>
               </View>
+              <Text style={styles.logoLabel}>Plata · {monthName} {yr}</Text>
             </View>
-          </>
-        ) : (
-          <>
-            <Text style={styles.heroLabel}>{t.home.spentThisMonth}</Text>
-            <Text style={styles.heroAmount}>
-              {summary ? formatCurrency(summary.total_spent, currency) : '—'}
-            </Text>
-            <View style={styles.heroMeta}>
-              <View style={styles.heroStat}>
-                <Text style={styles.heroStatValue}>{summary?.expense_count || 0}</Text>
-                <Text style={styles.heroStatLabel}>{t.home.expenses}</Text>
-              </View>
-              <View style={styles.heroDivider} />
-              <View style={styles.heroStat}>
-                <Text style={styles.heroStatValue}>
-                  {summary ? formatCurrency(summary.daily_average, currency) : '—'}
-                </Text>
-                <Text style={styles.heroStatLabel}>{t.home.perDay}</Text>
-              </View>
-              <View style={styles.heroDivider} />
-              <View style={styles.heroStat}>
-                <Text style={styles.heroStatValue}>{summary?.top_category || '—'}</Text>
-                <Text style={styles.heroStatLabel}>{t.home.topCategory}</Text>
-              </View>
+          </View>
+          <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
+            <BellIcon color={colors.textSecondary} />
+            <View style={styles.notifDot} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Hero card ─────────────────────────────────────────────────── */}
+        <View style={styles.heroCard}>
+          {/* Gradient overlay (top: dark green tint) */}
+          {isDark && (
+            <View style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              borderRadius: 28,
+            }}>
+              {/* top-left green tint */}
+              <View style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: '65%',
+                backgroundColor: 'rgba(18, 45, 20, 0.55)',
+                borderTopLeftRadius: 28, borderTopRightRadius: 28,
+              }} />
             </View>
-          </>
-        )}
-      </View>
+          )}
 
-      <TouchableOpacity
-        style={styles.addIncomeButton}
-        onPress={() => setIncomesModalVisible(true)}
-        activeOpacity={0.7}
-      >
-        <MaterialIcons name="add" size={15} color={colors.textSecondary} />
-        <Text style={styles.addIncomeText}>{t.home.addIncome}</Text>
-      </TouchableOpacity>
+          {/* Radial glow — top-right */}
+          <View style={{ position: 'absolute', top: -35, right: -35, width: 200, height: 200 }}>
+            <Svg width={200} height={200}>
+              <Defs>
+                <RadialGradient id="hglow" cx="50%" cy="50%" r="50%">
+                  <Stop offset="0%" stopColor={colors.primary} stopOpacity="0.2" />
+                  <Stop offset="100%" stopColor={colors.primary} stopOpacity="0" />
+                </RadialGradient>
+              </Defs>
+              <Rect x={0} y={0} width={200} height={200} fill="url(#hglow)" />
+            </Svg>
+          </View>
 
-      {summary?.budget_status?.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.home.monthlyBudgets}</Text>
-          <View style={styles.budgetCard}>
-            {summary.budget_status
-              .filter(b => b.spent > 0)
-              .sort((a, b) => b.percentage_used - a.percentage_used)
-              .slice(0, 5)
-              .map((budget, i) => (
-                <View key={budget.category}>
-                  {i > 0 && <View style={styles.budgetDivider} />}
-                  <BudgetBar
-                    category={budget.category}
-                    spent={budget.spent}
-                    limit={budget.monthly_limit}
-                    alertLevel={budget.alert_level}
-                  />
-                </View>
-              ))}
+          {/* Top row: eyebrow + optional badge */}
+          <View style={styles.heroTopRow}>
+            <Text style={styles.heroEyebrow}>
+              {hasIncome ? t.home.availableThisMonth : t.home.spentThisMonth}
+            </Text>
+            {trend && trend.pct >= 0.5 ? (
+              <View style={[
+                styles.heroBadge,
+                { borderColor: (trend.down ? colors.success : colors.danger) + '50' },
+              ]}>
+                {trend.down
+                  ? <TrendDown size={11} color={colors.success} />
+                  : <TrendUp size={11} color={colors.danger} />}
+                <Text style={[
+                  styles.heroBadgeText,
+                  { color: trend.down ? colors.success : colors.danger },
+                ]}>
+                  {trend.down ? '−' : '+'}{trend.pct.toFixed(1)}%
+                </Text>
+              </View>
+            ) : summary && (
+              <View style={styles.heroBadge}>
+                <TrendUp size={11} color={colors.success} />
+                <Text style={styles.heroBadgeText}>
+                  {summary.expense_count || 0} gastos
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Balance amount */}
+          <View style={styles.heroAmountRow}>
+            <Text style={styles.heroCurrency}>{currency.symbol}</Text>
+            <Text style={[styles.heroAmount, { color: heroAmountColor }]}>
+              {heroAmount.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+
+          {/* Sparkline */}
+          {sparklineData.length >= 2 && (
+            <View style={{ marginBottom: 14 }}>
+              <SparklineChart
+                data={sparklineData}
+                height={46}
+                color={colors.primary}
+              />
+            </View>
+          )}
+
+          {/* Mini stats */}
+          <View style={styles.heroMetaRow}>
+            <MiniStat
+              label="Ingresos"
+              value={summary?.total_income || 0}
+              dir="up"
+              color={colors.success}
+              colors={colors}
+              currency={currency}
+              onPress={() => setIncomesModalVisible(true)}
+            />
+            <MiniStat
+              label="Gastado"
+              value={summary?.total_spent || 0}
+              dir="down"
+              color={colors.danger}
+              colors={colors}
+              currency={currency}
+            />
           </View>
         </View>
-      )}
 
-      <View style={styles.listHeader}>
-        <Text style={styles.sectionTitle}>{t.home.latestExpenses}</Text>
-        <Text style={styles.listCount}>{expenses.length}</Text>
+        {/* ── Budget card ──────────────────────────────────────────────── */}
+        {totalBudgetLimit > 0 && (
+          <View style={styles.budgetCard}>
+            <View style={styles.budgetTopRow}>
+              <View>
+                <Text style={styles.budgetTitle}>Presupuesto mensual</Text>
+                <Text style={styles.budgetSubtitle}>
+                  {formatCurrency(summary?.total_spent || 0, currency)} / {formatCurrency(totalBudgetLimit, currency)}
+                </Text>
+              </View>
+              <Text style={[styles.budgetPct, { color: budgetColor }]}>{budgetPct}%</Text>
+            </View>
+            <View style={styles.budgetTrack}>
+              <View style={[styles.budgetFill, { width: `${budgetPct}%`, backgroundColor: budgetColor }]} />
+            </View>
+            <View style={styles.budgetFootRow}>
+              <Text style={styles.budgetFootText}>
+                Promedio diario · {formatCurrency(summary?.daily_average || 0, currency)}
+              </Text>
+              <Text style={styles.budgetFootText}>
+                Quedan {daysRemaining} días
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* ── Quick actions ────────────────────────────────────────────── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.quickActionsScroll}
+          contentContainerStyle={styles.quickActionsContent}
+        >
+          <QuickAction
+            primary
+            colors={colors}
+            icon={<MaterialIcons name="add" size={16} color={colors.textInverse} />}
+            label="Agregar gasto"
+            onPress={() => openSheet('expense')}
+          />
+          <QuickAction
+            colors={colors}
+            icon={<MaterialIcons name="trending-up" size={16} color={colors.success} />}
+            label="Ingreso"
+            onPress={() => openSheet('income')}
+          />
+          <QuickAction
+            colors={colors}
+            icon={<MaterialIcons name="bolt" size={16} color={colors.warning} />}
+            label="Recurrente"
+          />
+        </ScrollView>
+
+        {/* ── Section header ───────────────────────────────────────────── */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+          <TouchableOpacity
+            style={styles.viewAllBtn}
+            onPress={() => navigation?.navigate?.('History')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.viewAllText}>Ver todo</Text>
+            <MaterialIcons name="chevron-right" size={14} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Expense list wrapper card */}
+        {expenses.length > 0 && <View style={styles.expenseListCard} />}
       </View>
-    </View>
-  );
+    );
+  };
+
+  // show only first 5 in home
+  const visibleExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
 
       {error && (
         <ErrorBanner
@@ -450,20 +747,29 @@ export default function HomeScreen({ navigation }) {
         />
       )}
 
-      <View style={styles.topBar}>
-        <View>
-          <Text style={styles.appName}>{t.home.appName}</Text>
-          <Text style={styles.monthLabel}>
-            {summary?.month_number ? t.months[summary.month_number] : ''} {summary?.year || ''}
-          </Text>
-        </View>
-      </View>
-
       <FlatList
-        data={expenses}
+        data={visibleExpenses}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <ExpenseCard expense={item} onPress={setSelectedExpense} />
+        renderItem={({ item, index }) => (
+          <View style={{
+            marginHorizontal: spacing.lg,
+            backgroundColor: colors.surface,
+            // match the card border only at sides/bottom for items
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderBottomWidth: index === visibleExpenses.length - 1 ? 1 : 0,
+            borderColor: colors.border,
+            borderBottomLeftRadius: index === visibleExpenses.length - 1 ? borderRadius.lg : 0,
+            borderBottomRightRadius: index === visibleExpenses.length - 1 ? borderRadius.lg : 0,
+            paddingHorizontal: 8,
+          }}>
+            <ExpenseRow
+              expense={item}
+              colors={colors}
+              currency={currency}
+              onPress={setSelectedExpense}
+            />
+          </View>
         )}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
@@ -476,19 +782,34 @@ export default function HomeScreen({ navigation }) {
           )
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
       />
 
+      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setModalVisible(true)}
+        onPress={() => openSheet('expense')}
         activeOpacity={0.85}
       >
         <MaterialIcons name="add" size={28} color={colors.textInverse} />
       </TouchableOpacity>
+
+      {/* Modals */}
+      <BottomSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        initialType={sheetType}
+        onSubmitExpense={handleAddExpense}
+        onSubmitIncome={handleAddIncome}
+      />
 
       <IncomesModal
         visible={incomesModalVisible}
@@ -496,19 +817,6 @@ export default function HomeScreen({ navigation }) {
         year={new Date().getFullYear()}
         onClose={() => setIncomesModalVisible(false)}
         onUpdate={() => { incrementDataVersion(); loadData(); }}
-      />
-
-      <AddExpenseModal
-        visible={modalVisible}
-        onClose={() => {
-          setModalVisible(false);
-          setPrefillData(null);
-        }}
-        onSubmit={handleAddExpense}
-        onRequestScan={handleRequestScan}
-        onRequestCamera={handleRequestCamera}
-        scanning={scanning}
-        prefillData={prefillData}
       />
 
       <ExpenseDetailModal

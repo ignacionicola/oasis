@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform, View, ActivityIndicator, AppState } from 'react-native';
+import { Platform, View, ActivityIndicator } from 'react-native';
 import { SettingsProvider } from './src/context/SettingsContext';
 import { useSettings } from './src/context/SettingsContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -27,30 +27,19 @@ function AppNavigator() {
   const { user, loading: authLoading } = useAuth();
   const t = useTranslation();
   const isDark = settings.theme === 'dark';
-  const [appKey, setAppKey] = useState(0);
 
   useEffect(() => {
-    const bg = isDark ? '#111F35' : '#FFFFFF';
+    const bg = isDark ? '#0D1420' : '#F7F9F5';
     SystemUI.setBackgroundColorAsync(bg);
     if (Platform.OS !== 'android') return;
     NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
   }, [isDark]);
 
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        const bg = isDark ? '#111F35' : '#FFFFFF';
-        SystemUI.setBackgroundColorAsync(bg);
-        if (Platform.OS === 'android') {
-          NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
-        }
-        setAppKey((k) => k + 1);
-      }
-    });
-    return () => sub.remove();
-  }, [isDark]);
-
-  const bgColor = isDark ? '#111F35' : '#FFFFFF';
+  const bgColor = isDark ? '#0D1420' : '#F7F9F5';
+  const surfaceColor = isDark ? '#111F35' : '#FFFFFF';
+  const accentColor = isDark ? '#BFEF35' : '#6BAE12';
+  const inactiveColor = isDark ? '#7888A0' : '#8899AA';
+  const borderColor = isDark ? '#233050' : '#EBF0F6';
 
   const onLayoutReady = useCallback(async () => {
     if (loaded && !authLoading) await SplashScreen.hideAsync();
@@ -59,7 +48,7 @@ function AppNavigator() {
   if (authLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: bgColor, justifyContent: 'center', alignItems: 'center' }} onLayout={onLayoutReady}>
-        <ActivityIndicator size="large" color={isDark ? '#1D9E75' : '#0D6B4F'} />
+        <ActivityIndicator size="large" color={accentColor} />
       </View>
     );
   }
@@ -78,22 +67,21 @@ function AppNavigator() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
         <Tab.Navigator
-          key={appKey}
           tabBarPosition="bottom"
           swipeEnabled={true}
           screenOptions={({ route }) => ({
             tabBarShowLabel: true,
             tabBarShowIcon: true,
-            tabBarActiveTintColor: isDark ? '#1D9E75' : '#0D6B4F',
-            tabBarInactiveTintColor: '#8E9BB3',
+            tabBarActiveTintColor: accentColor,
+            tabBarInactiveTintColor: inactiveColor,
             tabBarIndicatorStyle: {
               backgroundColor: 'transparent',
               height: 0,
             },
             tabBarStyle: {
-              backgroundColor: isDark ? '#111F35' : '#FFFFFF',
+              backgroundColor: surfaceColor,
               borderTopWidth: 1,
-              borderTopColor: isDark ? '#162540' : '#F0F3F7',
+              borderTopColor: borderColor,
               height: 70,
               paddingBottom: 10,
               paddingTop: 2,
@@ -154,7 +142,7 @@ function AppNavigator() {
 
 function ThemedRoot() {
   const { settings } = useSettings();
-  const bgColor = settings.theme === 'dark' ? '#111F35' : '#FFFFFF';
+  const bgColor = settings.theme === 'dark' ? '#0D1420' : '#F7F9F5';
   return (
     <SafeAreaProvider style={{ backgroundColor: bgColor }}>
       <AppNavigator />

@@ -1,55 +1,3 @@
-/**
- * Plata — Design System
- *
- * Paleta inspirada en un oasis: azules profundos, arena dorada, verde esmeralda.
- * Tipografía clara y espaciosa para máxima legibilidad.
- */
-
-export const colors = {
-  // Primarios
-  primary: '#0D6B4F',       // Verde esmeralda — acciones principales
-  primaryLight: '#E8F5F0',  // Fondo suave verde
-  primaryDark: '#064D38',
-
-  // Secundarios
-  accent: '#D4A843',        // Dorado arena — acentos y highlights
-  accentLight: '#FFF8E7',
-
-  // Fondos
-  background: '#F8F9FB',    // Gris casi blanco
-  surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
-
-  // Texto
-  textPrimary: '#0A1628',   // Azul muy oscuro
-  textSecondary: '#5A6B82',
-  textTertiary: '#8E9BB3',
-  textInverse: '#FFFFFF',
-
-  // Categorías (cada una con su color)
-  categories: {
-    Comida: '#E8593C',
-    Transporte: '#3B8BD4',
-    Salud: '#D4538B',
-    Hogar: '#8B6FD4',
-    Servicios: '#5A9E6F',
-    Entretenimiento: '#E89B3C',
-    Ropa: '#D45A8B',
-    Educación: '#4B8BD4',
-    Otros: '#8E9BB3',
-  },
-
-  // Semánticos
-  success: '#0D6B4F',
-  warning: '#D4A843',
-  danger: '#D94444',
-  info: '#3B8BD4',
-
-  // Bordes
-  border: '#E8ECF1',
-  borderLight: '#F0F3F7',
-};
-
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -68,61 +16,111 @@ export const borderRadius = {
 };
 
 export const typography = {
-  // Headings
   h1: { fontSize: 28, fontWeight: '700', lineHeight: 34, letterSpacing: -0.5 },
   h2: { fontSize: 22, fontWeight: '600', lineHeight: 28, letterSpacing: -0.3 },
   h3: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
-
-  // Body
   body: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
   bodySmall: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
-
-  // Labels
   label: { fontSize: 13, fontWeight: '500', lineHeight: 18, letterSpacing: 0.3 },
   labelSmall: { fontSize: 11, fontWeight: '600', lineHeight: 14, letterSpacing: 0.5 },
-
-  // Numbers (para montos)
   amount: { fontSize: 32, fontWeight: '700', lineHeight: 38, letterSpacing: -1 },
   amountSmall: { fontSize: 20, fontWeight: '600', lineHeight: 26, letterSpacing: -0.5 },
 };
 
 export const shadows = {
   sm: {
-    shadowColor: '#0A1628',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   md: {
-    shadowColor: '#0A1628',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 5,
   },
 };
 
+// Light theme
+export const colors = {
+  primary: '#6BAE12',
+  primaryLight: 'rgba(107, 174, 18, 0.14)',
+  primaryDark: '#4D8008',
+  accent: '#6BAE12',
+  accentLight: 'rgba(107, 174, 18, 0.1)',
+  background: '#F7F9F5',
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
+  textPrimary: '#0A1628',
+  textSecondary: '#3D4E66',
+  textTertiary: '#667894',
+  textQuaternary: '#8899AA',
+  textInverse: '#1A2E06',
+  categories: {
+    Comida: '#BF5A18',
+    Transporte: '#2060B0',
+    Salud: '#C03838',
+    Hogar: '#1E7090',
+    Servicios: '#1A9060',
+    Entretenimiento: '#C08010',
+    Ropa: '#C02860',
+    Educación: '#5038A0',
+    Otros: '#5038A0',
+  },
+  success: '#2A8848',
+  warning: '#A87A08',
+  danger: '#C03820',
+  info: '#2060B0',
+  border: '#DDE5EE',
+  borderLight: '#EBF0F6',
+};
+
+// Dark theme  — matches the prototype's --ink / --lime / --t* variables
 export const darkColors = {
-  primary: '#1D9E75',
-  primaryLight: '#0D3D2E',
-  primaryDark: '#15785A',
-  accent: '#D4A843',
-  accentLight: '#2D2010',
-  background: '#0A1628',
+  // electric lime accent (oklch 0.92 0.19 122)
+  primary: '#BFEF35',
+  primaryLight: 'rgba(191, 239, 53, 0.16)',
+  primaryDark: '#9AC420',
+  accent: '#BFEF35',
+  accentLight: 'rgba(191, 239, 53, 0.1)',
+
+  // surfaces  (oklch ink-0 → ink-3)
+  background: '#0D1420',
   surface: '#111F35',
-  surfaceElevated: '#1A2D45',
-  textPrimary: '#F0F4F8',
-  textSecondary: '#8E9BB3',
-  textTertiary: '#5A6B82',
-  textInverse: '#0A1628',
-  categories: colors.categories,
-  success: '#1D9E75',
-  warning: '#D4A843',
-  danger: '#E05555',
-  info: '#4B9FE1',
-  border: '#1E3050',
-  borderLight: '#162540',
+  surfaceElevated: '#162840',
+
+  // text  (oklch t1 → t4)
+  textPrimary: '#F4F7FA',
+  textSecondary: '#B0BFCF',
+  textTertiary: '#7888A0',
+  textQuaternary: '#4A5870',
+  textInverse: '#1A2E06',
+
+  // category palette
+  categories: {
+    Comida: '#D48040',
+    Transporte: '#4080D0',
+    Salud: '#D06050',
+    Hogar: '#4090B0',
+    Servicios: '#45C880',
+    Entretenimiento: '#D8B040',
+    Ropa: '#D45080',
+    Educación: '#7060D0',
+    Otros: '#7060D0',
+  },
+
+  // semantic
+  success: '#68C875',
+  warning: '#E8C840',
+  danger: '#E06240',
+  info: '#4080D0',
+
+  // borders  (oklch line / line-soft)
+  border: '#233050',
+  borderLight: 'rgba(74, 100, 140, 0.25)',
 };
 
 export const categoryIcons = {
