@@ -3,11 +3,22 @@ Oasis Finance API — Entry Point.
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.database import init_db
 from app.config import get_settings
+
+# Rate limiter — DEBE definirse antes de importar las rutas
+# para que `from app.main import limiter` funcione (circular import).
+limiter = Limiter(
+    key_func=lambda r: (
+        r.headers.get('x-forwarded-for', r.client.host or '')
+    ).split(',')[0].strip()
+)
+
 from app.routes import expenses, budgets, dashboard, incomes, scanner, auth
 
 settings = get_settings()
@@ -25,12 +36,23 @@ app = FastAPI(
     description="API para gestión de gastos personales con categorización AI",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if settings.environment == "development" else None,
+    redoc_url="/redoc" if settings.environment == "development" else None,
 )
 
-# CORS — permitir requests desde el frontend Expo
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS — abierto en dev, restringido a dominios conocidos en producción
+allow_origins = (
+    ["*"] if settings.environment == "development"
+    else ["https://oasis-backend-yu55.onrender.com"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, restringir a tu dominio
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

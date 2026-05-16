@@ -1,5 +1,5 @@
 import datetime as dt
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 
 
 # ── Auth Schemas ──
@@ -7,6 +7,14 @@ from pydantic import BaseModel, Field, EmailStr
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
+
+    @validator('password')
+    def validate_password(cls, v):
+        if v.isdigit():
+            raise ValueError('La contraseña no puede ser solo números')
+        if v.lower() == v:
+            raise ValueError('La contraseña debe tener al menos una mayúscula')
+        return v
 
 
 class UserLogin(BaseModel):

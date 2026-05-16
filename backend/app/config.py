@@ -1,3 +1,4 @@
+from pydantic import Field, validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -5,7 +6,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     app_name: str = "Oasis Finance API"
     environment: str = "development"
-    debug: bool = True
+    debug: bool = False
     database_url: str = "sqlite:///./oasis.db"
 
     # Categorías predefinidas para gastos
@@ -36,8 +37,14 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
 
-    secret_key: str = "changeme-in-production"
+    secret_key: str = Field(..., min_length=32)
     access_token_expire_days: int = 30
+
+    @validator('secret_key')
+    def validate_secret_key(cls, v, values):
+        if values.get('environment') == 'production' and v == 'changeme-in-production':
+            raise ValueError('SECRET_KEY debe configurarse en producción')
+        return v
 
     class Config:
         env_file = ".env"
