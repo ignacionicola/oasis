@@ -13,11 +13,16 @@ from app.config import get_settings
 
 # Rate limiter — DEBE definirse antes de importar las rutas
 # para que `from app.main import limiter` funcione (circular import).
-limiter = Limiter(
-    key_func=lambda r: (
-        r.headers.get('x-forwarded-for', r.client.host or '')
-    ).split(',')[0].strip()
-)
+def _get_client_key(*args):
+    if not args:
+        return '127.0.0.1'
+    r = args[0]
+    xff = r.headers.get('x-forwarded-for')
+    if xff:
+        return xff.split(',')[0].strip()
+    return r.client.host if r.client else '127.0.0.1'
+
+limiter = Limiter(key_func=_get_client_key)
 
 from app.routes import expenses, budgets, dashboard, incomes, scanner, auth
 
