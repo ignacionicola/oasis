@@ -3,6 +3,7 @@
     "name": "Plata",
     "slug": "plata",
     "version": "0.1.0",
+    "scheme": "plata",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,7 +23,8 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

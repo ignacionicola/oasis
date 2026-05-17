@@ -86,6 +86,13 @@ class ApiService {
     });
   }
 
+  async loginWithGoogle(idToken) {
+    return this.request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ id_token: idToken }),
+    });
+  }
+
   async getMe() {
     return this.request('/auth/me');
   }

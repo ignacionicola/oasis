@@ -6,13 +6,29 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Stop, Rect, Path } from 'react-native-svg';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import WelcomeScreen from './WelcomeScreen';
+
+WebBrowser.maybeCompleteAuthSession();
+
+// Logo "G" de Google
+function GoogleLogo({ size = 18 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+      <Path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.1 6.1 29.3 4 24 4 16.4 4 9.8 8.3 6.3 14.7z" />
+      <Path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.6 2.5-7.4 2.5-5.2 0-9.6-3.3-11.3-7.9l-6.6 5.1C9.6 39.6 16.2 44 24 44z" />
+      <Path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.3c-.4.4 6.7-4.9 6.7-15 0-1.3-.1-2.4-.4-3.5z" />
+    </Svg>
+  );
+}
 
 function FloatInput({ label, value, onChangeText, icon, secure, onToggleSecure, secureVisible, error, keyboardType, autoCapitalize, colors, isDark, fieldFocused, setFocused, fieldKey }) {
   const isFocused = fieldFocused === fieldKey;
@@ -167,7 +183,45 @@ export default function AuthScreen() {
   const { settings } = useSettings();
   const isDark = settings.theme === 'dark';
   const t = useTranslation();
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
+
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    androidClientId: '744400945581-acmpep8hi0io94mvk7sf896p1qt1vatv.apps.googleusercontent.com',
+    webClientId: '744400945581-acv00go5lm9k703bonaigglo9ob3pba4.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (!response) return;
+    if (response.type === 'success') {
+      const idToken = response.params?.id_token;
+      if (!idToken) {
+        Alert.alert('Error', 'No se recibió el token de Google.');
+        return;
+      }
+      (async () => {
+        setGoogleLoading(true);
+        try {
+          await loginWithGoogle(idToken);
+        } catch (err) {
+          const raw = String(err?.message ?? '');
+          let message = 'No pudimos iniciar sesión con Google.';
+          if (/fetch|network/i.test(raw)) {
+            message = 'Sin conexión. Revisá tu internet.';
+          } else if (raw && raw !== '[object Object]') {
+            message = raw;
+          }
+          Alert.alert('Error', message);
+        } finally {
+          setGoogleLoading(false);
+        }
+      })();
+    } else if (response.type === 'error') {
+      Alert.alert('Error', 'No se pudo conectar con Google. Intentá de nuevo.');
+    }
+    // 'cancel' / 'dismiss' / 'locked' → silencio, el user cerró el sheet
+  }, [response, loginWithGoogle]);
 
   const [view, setView] = useState('welcome');
   const [mode, setMode] = useState('login');
@@ -400,6 +454,46 @@ export default function AuthScreen() {
       letterSpacing: 0.2,
     },
 
+    // divider "o"
+    orRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    orLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.borderLight,
+    },
+    orText: {
+      fontFamily: fonts.sansBold,
+      fontSize: 11,
+      color: colors.textTertiary,
+      letterSpacing: 0.14,
+      textTransform: 'uppercase',
+    },
+
+    // Google button
+    googleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      paddingVertical: 14,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: isDark ? colors.border : '#DADCE0',
+      backgroundColor: isDark ? colors.surface : '#FFFFFF',
+    },
+    googleBtnText: {
+      fontFamily: fonts.sansBold,
+      fontSize: 15,
+      color: isDark ? colors.textPrimary : '#1F1F1F',
+      letterSpacing: 0.1,
+    },
+
     // back button
     backBtn: {
       width: 38, height: 38,
@@ -573,7 +667,7 @@ export default function AuthScreen() {
             <TouchableOpacity
               style={styles.submitBtn}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={loading || googleLoading}
               activeOpacity={0.85}
             >
               {loading ? (
@@ -584,6 +678,33 @@ export default function AuthScreen() {
                     {isRegister ? t.auth.register : t.auth.login}
                   </Text>
                   <MaterialIcons name="arrow-forward" size={18} color={colors.textInverse} />
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Divider "o" */}
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <Text style={styles.orText}>o</Text>
+              <View style={styles.orLine} />
+            </View>
+
+            {/* Continuar con Google */}
+            <TouchableOpacity
+              style={[
+                styles.googleBtn,
+                (!request || googleLoading || loading) && { opacity: 0.6 },
+              ]}
+              onPress={() => promptAsync()}
+              disabled={!request || googleLoading || loading}
+              activeOpacity={0.85}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <>
+                  <GoogleLogo size={18} />
+                  <Text style={styles.googleBtnText}>Continuar con Google</Text>
                 </>
               )}
             </TouchableOpacity>

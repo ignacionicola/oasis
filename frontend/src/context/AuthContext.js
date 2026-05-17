@@ -52,13 +52,20 @@ export function AuthProvider({ children }) {
     dispatch({ type: 'SET_USER', payload: { user, token: access_token } });
   };
 
+  const loginWithGoogle = async (idToken) => {
+    const { access_token } = await api.loginWithGoogle(idToken);
+    await api.setToken(access_token);
+    const user = await api.getMe();
+    dispatch({ type: 'SET_USER', payload: { user, token: access_token } });
+  };
+
   const logout = async () => {
     await api.logout();
     dispatch({ type: 'CLEAR' });
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout }}>
+    <AuthContext.Provider value={{ ...state, login, register, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
