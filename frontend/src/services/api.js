@@ -41,7 +41,19 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Error ${response.status}`);
+        let message = `Error ${response.status}`;
+        if (errorData?.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // Pydantic validation error: [{loc, msg, type}, ...]
+            const first = errorData.detail[0];
+            message = first?.msg || message;
+          } else if (typeof errorData.detail === 'string') {
+            message = errorData.detail;
+          } else if (typeof errorData.detail === 'object') {
+            message = errorData.detail.msg || JSON.stringify(errorData.detail);
+          }
+        }
+        throw new Error(message);
       }
 
       if (response.status === 204) return null;

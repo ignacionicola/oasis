@@ -6,34 +6,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Defs, RadialGradient, Stop, Rect, Path, G } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import WelcomeScreen from './WelcomeScreen';
-
-// Google "G" logo
-function GoogleLogo({ size = 18 }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 48 48">
-      <Path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
-      <Path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34.1 6.1 29.3 4 24 4 16.4 4 9.8 8.3 6.3 14.7z" />
-      <Path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.6 2.5-7.4 2.5-5.2 0-9.6-3.3-11.3-7.9l-6.6 5.1C9.6 39.6 16.2 44 24 44z" />
-      <Path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6.3 5.3c-.4.4 6.7-4.9 6.7-15 0-1.3-.1-2.4-.4-3.5z" />
-    </Svg>
-  );
-}
-
-// Apple logo
-function AppleLogo({ size = 18, color = '#000' }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-    </Svg>
-  );
-}
 
 function FloatInput({ label, value, onChangeText, icon, secure, onToggleSecure, secureVisible, error, keyboardType, autoCapitalize, colors, isDark, fieldFocused, setFocused, fieldKey }) {
   const isFocused = fieldFocused === fieldKey;
@@ -140,8 +119,8 @@ function FloatInput({ label, value, onChangeText, icon, secure, onToggleSecure, 
 function PasswordStrength({ password, colors, t }) {
   const strength = useMemo(() => {
     let s = 0;
-    if (password.length >= 6) s++;
-    if (password.length >= 10) s++;
+    if (password.length >= 8) s++;
+    if (password.length >= 12) s++;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) s++;
     if (/\d/.test(password) && /[^A-Za-z0-9]/.test(password)) s++;
     return s;
@@ -216,23 +195,46 @@ export default function AuthScreen() {
     outputRange: ['0%', '50%'],
   });
 
+  const scrollRef = useRef(null);
+  const handleFieldFocus = (fieldKey) => {
+    setFieldFocused(fieldKey);
+    // Cuando el user toca password o repeat password, scrolleamos al fondo
+    // para que el campo activo quede por encima del teclado.
+    if (fieldKey === 'password' || fieldKey === 'repeat') {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  };
+
   const repeatError =
     isRegister && repeatPassword && password !== repeatPassword
       ? t.auth.passwordsDontMatch
       : null;
 
   const validate = () => {
-    if (!email.includes('@') || !email.includes('.')) {
-      Alert.alert('Error', t.auth.invalidEmail);
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email.trim())) {
+      Alert.alert('Revisá los datos', 'Ingresá un email válido');
       return false;
     }
-    if (password.length < 8) {
-      Alert.alert('Error', t.auth.passwordTooShort);
-      return false;
-    }
-    if (isRegister && password !== repeatPassword) {
-      Alert.alert('Error', t.auth.passwordMismatch);
-      return false;
+    if (isRegister) {
+      if (password.length < 8) {
+        Alert.alert('Revisá los datos', 'La contraseña necesita al menos 8 caracteres');
+        return false;
+      }
+      if (/^\d+$/.test(password)) {
+        Alert.alert('Revisá los datos', 'La contraseña no puede ser solo números');
+        return false;
+      }
+      if (password === password.toLowerCase()) {
+        Alert.alert('Revisá los datos', 'La contraseña necesita al menos una mayúscula');
+        return false;
+      }
+      if (password !== repeatPassword) {
+        Alert.alert('Revisá los datos', 'Las contraseñas no coinciden');
+        return false;
+      }
     }
     return true;
   };
@@ -247,7 +249,22 @@ export default function AuthScreen() {
         await login(email.trim().toLowerCase(), password);
       }
     } catch (err) {
-      Alert.alert('Error', err.message);
+      let message = 'Algo salió mal. Intentá de nuevo.';
+      const raw = String(err?.message ?? '');
+
+      if (/fetch|network/i.test(raw)) {
+        message = 'Sin conexión. Revisá tu internet.';
+      } else if (err?.detail) {
+        if (Array.isArray(err.detail)) {
+          message = err.detail[0]?.msg || message;
+        } else if (typeof err.detail === 'string') {
+          message = err.detail;
+        }
+      } else if (raw && raw !== '[object Object]') {
+        message = raw;
+      }
+
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
@@ -383,64 +400,6 @@ export default function AuthScreen() {
       letterSpacing: 0.2,
     },
 
-    // magic link
-    magicBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      marginTop: 4,
-    },
-    magicText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.textSecondary,
-    },
-
-    // divider
-    dividerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      marginVertical: spacing.md,
-    },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: colors.borderLight,
-    },
-    dividerText: {
-      fontFamily: fonts.sansBold,
-      fontSize: 10.5,
-      color: colors.textTertiary,
-      letterSpacing: 0.14,
-    },
-
-    // OAuth
-    oauthRow: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 2,
-    },
-    oauthBtn: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingVertical: 12,
-      borderRadius: borderRadius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: isDark ? 'rgba(10, 18, 34, 0.55)' : colors.background,
-    },
-    oauthText: {
-      fontFamily: fonts.sansSemi,
-      fontSize: 13,
-      color: colors.textPrimary,
-    },
-
     // back button
     backBtn: {
       width: 38, height: 38,
@@ -482,9 +441,11 @@ export default function AuthScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -564,7 +525,7 @@ export default function AuthScreen() {
               colors={colors}
               isDark={isDark}
               fieldFocused={fieldFocused}
-              setFocused={setFieldFocused}
+              setFocused={handleFieldFocus}
               fieldKey="email"
             />
 
@@ -579,7 +540,7 @@ export default function AuthScreen() {
               colors={colors}
               isDark={isDark}
               fieldFocused={fieldFocused}
-              setFocused={setFieldFocused}
+              setFocused={handleFieldFocus}
               fieldKey="password"
             />
 
@@ -598,7 +559,7 @@ export default function AuthScreen() {
                 colors={colors}
                 isDark={isDark}
                 fieldFocused={fieldFocused}
-                setFocused={setFieldFocused}
+                setFocused={handleFieldFocus}
                 fieldKey="repeat"
               />
             )}
@@ -627,44 +588,6 @@ export default function AuthScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t.auth.orContinueWith}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* OAuth buttons */}
-            <View style={styles.oauthRow}>
-              <TouchableOpacity
-                style={styles.oauthBtn}
-                activeOpacity={0.7}
-                onPress={() => Alert.alert('Google', t.auth.comingSoon)}
-              >
-                <GoogleLogo size={18} />
-                <Text style={styles.oauthText}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.oauthBtn}
-                activeOpacity={0.7}
-                onPress={() => Alert.alert('Apple', t.auth.comingSoon)}
-              >
-                <AppleLogo size={18} color={isDark ? '#FFFFFF' : '#000000'} />
-                <Text style={styles.oauthText}>Apple</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Magic link */}
-            <TouchableOpacity
-              style={styles.magicBtn}
-              activeOpacity={0.7}
-              onPress={() => Alert.alert(t.auth.magicLinkTitle, t.auth.magicLinkMsg)}
-            >
-              <MaterialIcons name="bolt" size={16} color={colors.primary} />
-              <Text style={styles.magicText}>
-                {isRegister ? t.auth.magicRegister : t.auth.magicLogin}
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Footer microcopy */}

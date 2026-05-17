@@ -4,8 +4,6 @@ import {
   Modal, StyleSheet, ScrollView, ActivityIndicator,
   Alert, Platform, KeyboardAvoidingView, Dimensions,
 } from 'react-native';
-
-const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { spacing, borderRadius, fonts } from '../theme';
@@ -14,6 +12,8 @@ import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
 import CategoryIcon from './CategoryIcon';
 import api from '../services/api';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const CATEGORIES = [
   { name: 'Comida' },
@@ -90,10 +90,15 @@ export default function BottomSheet({
     await processScanResult(result.assets[0].uri);
   };
 
+  // rawAmount guarda solo dígitos. La display los formatea con separador de miles.
+  const formatAmount = (digits) => {
+    if (!digits) return '';
+    return Number(digits).toLocaleString('es-AR');
+  };
+
   const handleSubmit = async () => {
-    const normalized = rawAmount.replace(',', '.');
-    const parsedAmount = parseFloat(normalized);
-    if (!normalized || isNaN(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = parseInt(rawAmount, 10);
+    if (!rawAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert(t.addExpense.invalidAmount, t.addExpense.invalidAmountMsg);
       return;
     }
@@ -137,7 +142,7 @@ export default function BottomSheet({
       backgroundColor: colors.surface,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
-      height: Math.round(SCREEN_HEIGHT * 0.9),
+      maxHeight: Math.round(SCREEN_HEIGHT * 0.9),
       borderTopWidth: 1,
       borderColor: colors.border,
     },
@@ -175,6 +180,7 @@ export default function BottomSheet({
     },
     scrollContent: {
       paddingHorizontal: spacing.md,
+      paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
     },
     amountDisplay: {
       alignItems: 'center',
@@ -269,13 +275,6 @@ export default function BottomSheet({
       fontWeight: '600',
       textAlign: 'center',
     },
-    submitContainer: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderLight,
-    },
     submitBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -283,6 +282,7 @@ export default function BottomSheet({
       gap: spacing.sm,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.md,
+      marginTop: spacing.sm,
     },
     submitBtnText: {
       fontSize: 16,
@@ -303,150 +303,148 @@ export default function BottomSheet({
     >
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <View style={styles.sheet}>
-              <View style={styles.handle} />
+          <View style={styles.sheet}>
+            <View style={styles.handle} />
 
-              {/* Type toggle */}
-              <View style={styles.typeToggle}>
-                <TouchableOpacity
-                  style={[
-                    styles.typeBtn,
-                    !isExpense && { backgroundColor: 'transparent' },
-                    isExpense && { backgroundColor: colors.danger + '18', borderWidth: 1, borderColor: colors.danger + '50' },
-                  ]}
-                  onPress={() => setType('expense')}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="remove" size={16} color={isExpense ? colors.danger : colors.textTertiary} />
-                  <Text style={[styles.typeBtnText, { color: isExpense ? colors.danger : colors.textTertiary }]}>
-                    {t.addExpense.expense}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.typeBtn,
-                    isExpense && { backgroundColor: 'transparent' },
-                    !isExpense && { backgroundColor: colors.primary + '18', borderWidth: 1, borderColor: colors.primary + '50' },
-                  ]}
-                  onPress={() => setType('income')}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="add" size={16} color={!isExpense ? colors.primary : colors.textTertiary} />
-                  <Text style={[styles.typeBtnText, { color: !isExpense ? colors.primary : colors.textTertiary }]}>
-                    {t.addExpense.income}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                style={{ flex: 1 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+            {/* Toggle gasto/ingreso — fijo arriba, no scrollea */}
+            <View style={styles.typeToggle}>
+              <TouchableOpacity
+                style={[
+                  styles.typeBtn,
+                  !isExpense && { backgroundColor: 'transparent' },
+                  isExpense && { backgroundColor: colors.danger + '18', borderWidth: 1, borderColor: colors.danger + '50' },
+                ]}
+                onPress={() => setType('expense')}
+                activeOpacity={0.7}
               >
-                <View style={styles.scrollContent}>
-                  {/* Amount input */}
-                  <View style={styles.amountDisplay}>
-                    <Text style={[styles.amountLabel, { color: accentColor }]}>
-                      {isExpense ? t.addExpense.howMuchSpent : t.addExpense.howMuchReceived}
-                    </Text>
-                    <View style={styles.amountRow}>
-                      <Text style={styles.currencySign}>{isExpense ? '-' : '+'}{currency.symbol}</Text>
-                      <TextInput
-                        style={[styles.amountInput, { color: amountColor }]}
-                        value={rawAmount}
-                        onChangeText={(text) => setRawAmount(text.replace(/[^0-9.,]/g, ''))}
-                        keyboardType="numeric"
-                        placeholder="0"
-                        placeholderTextColor={colors.textTertiary}
-                        maxLength={12}
-                      />
-                    </View>
-                  </View>
+                <MaterialIcons name="remove" size={16} color={isExpense ? colors.danger : colors.textTertiary} />
+                <Text style={[styles.typeBtnText, { color: isExpense ? colors.danger : colors.textTertiary }]}>
+                  {t.addExpense.expense}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.typeBtn,
+                  isExpense && { backgroundColor: 'transparent' },
+                  !isExpense && { backgroundColor: colors.primary + '18', borderWidth: 1, borderColor: colors.primary + '50' },
+                ]}
+                onPress={() => setType('income')}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="add" size={16} color={!isExpense ? colors.primary : colors.textTertiary} />
+                <Text style={[styles.typeBtnText, { color: !isExpense ? colors.primary : colors.textTertiary }]}>
+                  {t.addExpense.income}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-                  {/* Scan buttons (expense only) */}
-                  {isExpense && (
-                    <View style={styles.scanRow}>
-                      <TouchableOpacity style={styles.scanBtn} onPress={handleOpenCamera} activeOpacity={0.7}>
-                        {scanning ? (
-                          <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                          <MaterialIcons name="photo-camera" size={18} color={colors.primary} />
-                        )}
-                        <Text style={styles.scanBtnText}>{t.addExpense.openCamera}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.scanBtn} onPress={handleScanTicket} activeOpacity={0.7}>
-                        {scanning ? (
-                          <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                          <MaterialIcons name="document-scanner" size={18} color={colors.primary} />
-                        )}
-                        <Text style={styles.scanBtnText}>{t.addExpense.scanTicket}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* Description */}
-                  <Text style={styles.fieldLabel}>
-                    {isExpense ? t.addExpense.placeholder : t.addIncome.placeholder}
+            {/* KeyboardAvoidingView solo alrededor del ScrollView interno */}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={0}
+            >
+              <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {/* 1. Monto — arriba de todo el contenido scrolleable */}
+                <View style={styles.amountDisplay}>
+                  <Text style={[styles.amountLabel, { color: accentColor }]}>
+                    {isExpense ? t.addExpense.howMuchSpent : t.addExpense.howMuchReceived}
                   </Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder={isExpense ? t.addExpense.example : t.addIncome.example}
-                    placeholderTextColor={colors.textTertiary}
-                    value={description}
-                    onChangeText={setDescription}
-                    maxLength={200}
-                    returnKeyType="done"
-                  />
-
-                  {/* Category grid (expense only) */}
-                  {isExpense && (
-                    <>
-                      <Text style={styles.fieldLabel}>{t.addExpense.category}</Text>
-                      <View style={styles.categoryGrid}>
-                        {CATEGORIES.map((cat) => {
-                          const isSelected = selectedCategory === cat.name;
-                          const catColor = colors.categories[cat.name] || colors.textTertiary;
-                          return (
-                            <TouchableOpacity
-                              key={cat.name}
-                              style={[
-                                styles.categoryChip,
-                                {
-                                  backgroundColor: isSelected ? catColor + '18' : colors.background,
-                                  borderColor: isSelected ? catColor : colors.border,
-                                },
-                              ]}
-                              onPress={() => setSelectedCategory(isSelected ? null : cat.name)}
-                              activeOpacity={0.7}
-                            >
-                              <CategoryIcon
-                                category={cat.name}
-                                color={catColor}
-                                size={18}
-                                containerSize={34}
-                                style={{ backgroundColor: isSelected ? catColor + '25' : catColor + '14' }}
-                              />
-                              <Text style={[
-                                styles.categoryChipLabel,
-                                { color: isSelected ? catColor : colors.textSecondary },
-                              ]}>
-                                {t.categories?.[cat.name] || cat.name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    </>
-                  )}
+                  <View style={styles.amountRow}>
+                    <Text style={styles.currencySign}>{isExpense ? '-' : '+'}{currency.symbol}</Text>
+                    <TextInput
+                      style={[styles.amountInput, { color: amountColor }]}
+                      value={formatAmount(rawAmount)}
+                      onChangeText={(text) => setRawAmount(text.replace(/\D/g, ''))}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={colors.textTertiary}
+                      maxLength={15}
+                    />
+                  </View>
                 </View>
-              </ScrollView>
 
-              {/* Submit button */}
-              <View style={styles.submitContainer}>
+                {/* Scan buttons (solo gasto) */}
+                {isExpense && (
+                  <View style={styles.scanRow}>
+                    <TouchableOpacity style={styles.scanBtn} onPress={handleOpenCamera} activeOpacity={0.7}>
+                      {scanning ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <MaterialIcons name="photo-camera" size={18} color={colors.primary} />
+                      )}
+                      <Text style={styles.scanBtnText}>{t.addExpense.openCamera}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.scanBtn} onPress={handleScanTicket} activeOpacity={0.7}>
+                      {scanning ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <MaterialIcons name="document-scanner" size={18} color={colors.primary} />
+                      )}
+                      <Text style={styles.scanBtnText}>{t.addExpense.scanTicket}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* 2. Descripción */}
+                <Text style={styles.fieldLabel}>
+                  {isExpense ? t.addExpense.placeholder : t.addIncome.placeholder}
+                </Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={isExpense ? t.addExpense.example : t.addIncome.example}
+                  placeholderTextColor={colors.textTertiary}
+                  value={description}
+                  onChangeText={setDescription}
+                  maxLength={200}
+                  returnKeyType="done"
+                />
+
+                {/* 3. Categorías (solo gasto) */}
+                {isExpense && (
+                  <>
+                    <Text style={styles.fieldLabel}>{t.addExpense.category}</Text>
+                    <View style={styles.categoryGrid}>
+                      {CATEGORIES.map((cat) => {
+                        const isSelected = selectedCategory === cat.name;
+                        const catColor = colors.categories[cat.name] || colors.textTertiary;
+                        return (
+                          <TouchableOpacity
+                            key={cat.name}
+                            style={[
+                              styles.categoryChip,
+                              {
+                                backgroundColor: isSelected ? catColor + '18' : colors.background,
+                                borderColor: isSelected ? catColor : colors.border,
+                              },
+                            ]}
+                            onPress={() => setSelectedCategory(isSelected ? null : cat.name)}
+                            activeOpacity={0.7}
+                          >
+                            <CategoryIcon
+                              category={cat.name}
+                              color={catColor}
+                              size={18}
+                              containerSize={34}
+                              style={{ backgroundColor: isSelected ? catColor + '25' : catColor + '14' }}
+                            />
+                            <Text style={[
+                              styles.categoryChipLabel,
+                              { color: isSelected ? catColor : colors.textSecondary },
+                            ]}>
+                              {t.categories?.[cat.name] || cat.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </>
+                )}
+
+                {/* 4. Botón guardar — al final del scroll */}
                 <TouchableOpacity
                   style={[
                     styles.submitBtn,
@@ -467,9 +465,9 @@ export default function BottomSheet({
                     </>
                   )}
                 </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>

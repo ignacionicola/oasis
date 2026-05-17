@@ -2,17 +2,28 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 
+from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.main import limiter
 from app.models import User, Expense, Income
-from app.models.schemas import Token, UserCreate, UserLogin, UserResponse
+from app.models.schemas import (
+    GoogleAuthRequest,
+    Token,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+)
 from app.skills.auth import (
     create_access_token,
     get_password_hash,
     verify_password,
 )
+
+settings = get_settings()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -41,11 +52,73 @@ def register(request: Request, payload: UserCreate, db: Session = Depends(get_db
 @limiter.limit("10/minute")
 def login(request: Request, payload: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
-    if user is None or not verify_password(payload.password, user.hashed_password):
+    if user is None or not user.hashed_password or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
         )
+    token = create_access_token({"sub": user.email})
+    return Token(access_token=token)
+
+
+@router.post("/google", response_model=Token)
+@limiter.limit("10/minute")
+def google_login(
+    request: Request,
+    payload: GoogleAuthRequest,
+    db: Session = Depends(get_db),
+):
+    """Login/registro vía Google ID token."""
+    if not settings.google_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login con Google no está configurado en el servidor",
+        )
+
+    # 1. Verificar el token con Google
+    try:
+        idinfo = google_id_token.verify_oauth2_token(
+            payload.id_token,
+            google_requests.Request(),
+            settings.google_client_id,
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google inválido o expirado",
+        )
+
+    google_sub = idinfo.get("sub")
+    email = idinfo.get("email")
+    if not google_sub or not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google no contiene los datos requeridos",
+        )
+
+    email = email.lower()
+
+    # 2. Buscar por google_id
+    user = db.query(User).filter(User.google_id == google_sub).first()
+
+    # 3. Si no hay match por google_id, buscar por email y asociar
+    if user is None:
+        user = db.query(User).filter(User.email == email).first()
+        if user is not None:
+            user.google_id = google_sub
+            db.commit()
+            db.refresh(user)
+        else:
+            # 4. Crear usuario nuevo sin password
+            user = User(
+                email=email,
+                google_id=google_sub,
+                hashed_password=None,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
     token = create_access_token({"sub": user.email})
     return Token(access_token=token)
 

@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     }
 
     gemini_api_key: str = ""
+    google_client_id: str = ""
 
     secret_key: str = Field(..., min_length=32)
     access_token_expire_days: int = 30
