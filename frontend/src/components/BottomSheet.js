@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing, borderRadius, fonts } from '../theme';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
@@ -38,6 +39,7 @@ export default function BottomSheet({
   const { currency } = settings;
   const t = useTranslation();
   const isDark = settings.theme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const [type, setType] = useState(initialType);
   const [rawAmount, setRawAmount] = useState('');
@@ -278,7 +280,9 @@ export default function BottomSheet({
     submitDock: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
-      paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
+      // Padding base + inset del safe area inferior (Android nav bar / iPhone home indicator).
+      // Mínimo 16 para que nunca quede pegado al borde si el inset es 0.
+      paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.sm,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
       backgroundColor: colors.surface,
@@ -295,7 +299,7 @@ export default function BottomSheet({
       fontSize: 16,
       fontWeight: '600',
     },
-  }), [colors]);
+  }), [colors, insets.bottom]);
 
   const isExpense = type === 'expense';
   const accentColor = isExpense ? colors.danger : colors.primary;
