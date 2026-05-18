@@ -63,6 +63,7 @@ function AppNavigator() {
     const bg = isDark ? '#0D1420' : '#F7F9F5';
     SystemUI.setBackgroundColorAsync(bg);
     if (Platform.OS !== 'android') return;
+    NavigationBar.setBackgroundColorAsync(isDark ? '#111F35' : 'transparent');
     NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
   }, [isDark]);
 

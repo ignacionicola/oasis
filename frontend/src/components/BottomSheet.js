@@ -142,7 +142,7 @@ export default function BottomSheet({
       backgroundColor: colors.surface,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
-      maxHeight: Math.round(SCREEN_HEIGHT * 0.9),
+      height: Math.round(SCREEN_HEIGHT * 0.9),
       borderTopWidth: 1,
       borderColor: colors.border,
     },
@@ -275,6 +275,14 @@ export default function BottomSheet({
       fontWeight: '600',
       textAlign: 'center',
     },
+    submitDock: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+      backgroundColor: colors.surface,
+    },
     submitBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -282,7 +290,6 @@ export default function BottomSheet({
       gap: spacing.sm,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.md,
-      marginTop: spacing.sm,
     },
     submitBtnText: {
       fontSize: 16,
@@ -338,12 +345,15 @@ export default function BottomSheet({
               </TouchableOpacity>
             </View>
 
-            {/* KeyboardAvoidingView solo alrededor del ScrollView interno */}
+            {/* KeyboardAvoidingView envuelve el ScrollView + el dock del submit.
+                El dock queda fijo abajo; el ScrollView toma el espacio sobrante. */}
             <KeyboardAvoidingView
+              style={{ flex: 1 }}
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               keyboardVerticalOffset={0}
             >
               <ScrollView
+                style={{ flex: 1 }}
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
@@ -444,7 +454,11 @@ export default function BottomSheet({
                   </>
                 )}
 
-                {/* 4. Botón guardar — al final del scroll */}
+              </ScrollView>
+
+              {/* Botón guardar — FIJO, fuera del ScrollView,
+                  siempre visible aunque el teclado esté abierto. */}
+              <View style={styles.submitDock}>
                 <TouchableOpacity
                   style={[
                     styles.submitBtn,
@@ -465,7 +479,7 @@ export default function BottomSheet({
                     </>
                   )}
                 </TouchableOpacity>
-              </ScrollView>
+              </View>
             </KeyboardAvoidingView>
           </View>
         </TouchableOpacity>

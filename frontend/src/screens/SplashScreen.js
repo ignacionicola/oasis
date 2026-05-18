@@ -250,34 +250,35 @@ export default function SplashScreen({ onFinish }) {
         </Animated.View>
       </View>
 
-      {/* App name */}
-      <Animated.Text
-        style={[
-          styles.appName,
-          {
-            color: colors.textPrimary,
-            opacity: nameOpacity,
-            transform: [{ translateY: nameTranslate }],
-            marginTop: 130,
-          },
-        ]}
+      {/* App name — Text estático envuelto en Animated.View para que
+          Android mida el ancho del glifo correctamente (Animated.Text
+          con letterSpacing negativo a veces clipea el último carácter). */}
+      <Animated.View
+        style={{
+          opacity: nameOpacity,
+          transform: [{ translateY: nameTranslate }],
+          marginTop: 130,
+        }}
       >
-        Plata
-      </Animated.Text>
+        <Text style={[styles.appName, { color: colors.textPrimary }]}>
+          Plata
+        </Text>
+      </Animated.View>
 
       {/* Tagline */}
-      <Animated.Text
+      <Animated.View
         style={[
-          styles.tagline,
+          { position: 'absolute', bottom: 60 },
           {
-            color: colors.textQuaternary,
             opacity: taglineOpacity,
             transform: [{ translateY: taglineTranslate }],
           },
         ]}
       >
-        TU ECONOMÍA, ORDENADA
-      </Animated.Text>
+        <Text style={[styles.tagline, { color: colors.textQuaternary }]}>
+          TU ECONOMÍA, ORDENADA
+        </Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -320,12 +321,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displayBold,
     fontSize: 28,
     letterSpacing: -0.6,
+    textAlign: 'center',
+    includeFontPadding: false,
+    paddingHorizontal: 12,
   },
   tagline: {
     fontFamily: fonts.sansBold,
     fontSize: 11,
     letterSpacing: 0.16,
-    position: 'absolute',
-    bottom: 60,
   },
 });
