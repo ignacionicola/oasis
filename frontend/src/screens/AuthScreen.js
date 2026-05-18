@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Stop, Rect, Path } from 'react-native-svg';
 import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
@@ -190,6 +191,10 @@ export default function AuthScreen() {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     androidClientId: '744400945581-acmpep8hi0io94mvk7sf896p1qt1vatv.apps.googleusercontent.com',
     webClientId: '744400945581-acv00go5lm9k703bonaigglo9ob3pba4.apps.googleusercontent.com',
+    redirectUri: AuthSession.makeRedirectUri({
+      scheme: 'plata',
+      path: 'oauthredirect',
+    }),
   });
 
   useEffect(() => {
