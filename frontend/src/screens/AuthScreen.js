@@ -7,17 +7,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Stop, Rect, Path } from 'react-native-svg';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import useTheme from '../theme/useTheme';
 import { useSettings } from '../context/SettingsContext';
 import useTranslation from '../i18n';
 import { spacing, borderRadius, shadows, fonts } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import WelcomeScreen from './WelcomeScreen';
-
-WebBrowser.maybeCompleteAuthSession();
 
 // Logo "G" de Google
 function GoogleLogo({ size = 18 }) {
@@ -188,45 +187,29 @@ export default function AuthScreen() {
 
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    androidClientId: '744400945581-acmpep8hi0io94mvk7sf896p1qt1vatv.apps.googleusercontent.com',
-    webClientId: '744400945581-acv00go5lm9k703bonaigglo9ob3pba4.apps.googleusercontent.com',
-    redirectUri: AuthSession.makeRedirectUri({
-      scheme: 'plata',
-      path: 'oauthredirect',
-    }),
-  });
-
   useEffect(() => {
-    if (!response) return;
-    if (response.type === 'success') {
-      const idToken = response.params?.id_token;
-      if (!idToken) {
-        Alert.alert('Error', 'No se recibió el token de Google.');
-        return;
+    GoogleSignin.configure({
+      webClientId: '744400945581-acv00go5lm9k703bonaigglo9ob3pba4.apps.googleusercontent.com',
+      offlineAccess: false,
+    });
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setGoogleLoading(true);
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) throw new Error('No se obtuvo el token de Google');
+      await loginWithGoogle(idToken);
+    } catch (error) {
+      if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Error', 'No se pudo iniciar sesión con Google');
       }
-      (async () => {
-        setGoogleLoading(true);
-        try {
-          await loginWithGoogle(idToken);
-        } catch (err) {
-          const raw = String(err?.message ?? '');
-          let message = 'No pudimos iniciar sesión con Google.';
-          if (/fetch|network/i.test(raw)) {
-            message = 'Sin conexión. Revisá tu internet.';
-          } else if (raw && raw !== '[object Object]') {
-            message = raw;
-          }
-          Alert.alert('Error', message);
-        } finally {
-          setGoogleLoading(false);
-        }
-      })();
-    } else if (response.type === 'error') {
-      Alert.alert('Error', 'No se pudo conectar con Google. Intentá de nuevo.');
+    } finally {
+      setGoogleLoading(false);
     }
-    // 'cancel' / 'dismiss' / 'locked' → silencio, el user cerró el sheet
-  }, [response, loginWithGoogle]);
+  };
 
   const [view, setView] = useState('welcome');
   const [mode, setMode] = useState('login');
@@ -698,10 +681,10 @@ export default function AuthScreen() {
             <TouchableOpacity
               style={[
                 styles.googleBtn,
-                (!request || googleLoading || loading) && { opacity: 0.6 },
+                (googleLoading || loading) && { opacity: 0.6 },
               ]}
-              onPress={() => promptAsync()}
-              disabled={!request || googleLoading || loading}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || loading}
               activeOpacity={0.85}
             >
               {googleLoading ? (
