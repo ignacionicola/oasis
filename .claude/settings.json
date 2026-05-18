@@ -28,7 +28,11 @@
       "Bash(findstr /v \"^$\")",
       "Bash(dir src\\\\components\\\\CategoryIcon.js src\\\\components\\\\SparklineChart.js src\\\\components\\\\BottomSheet.js)",
       "Bash(Sparkline)",
-      "Bash(BottomSheet\")"
+      "Bash(BottomSheet\")",
+      "Bash(npx eas-cli@latest build:view ed5350f8-8e42-4e36-be37-c2fbe836c042 --json)",
+      "WebFetch(domain:storage.googleapis.com)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('reanimated:', p.dependencies['react-native-reanimated']\\); console.log\\('worklets:', p.dependencies['react-native-worklets']\\);\")",
+      "Bash(npx expo-doctor *)"
     ]
   }
 }
