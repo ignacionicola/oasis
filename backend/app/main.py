@@ -24,7 +24,7 @@ def _get_client_key(*args):
 
 limiter = Limiter(key_func=_get_client_key)
 
-from app.routes import expenses, budgets, dashboard, incomes, scanner, auth
+from app.routes import expenses, budgets, dashboard, incomes, scanner, auth, recurring
 
 settings = get_settings()
 
@@ -70,6 +70,7 @@ app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(incomes.router, prefix="/api/v1")
 app.include_router(scanner.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(recurring.router, prefix="/api/v1")
 
 
 @app.get("/")

@@ -94,6 +94,37 @@ class Income(Base):
         }
 
 
+class RecurringExpense(Base):
+    __tablename__ = "recurring_expenses"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    description = Column(String(500), nullable=False)
+    amount = Column(Float, nullable=False)
+    category = Column(String(100), nullable=False, default="Otros")
+    # día del mes (1-28) en que se genera automáticamente el gasto
+    day_of_month = Column(Integer, nullable=False)
+    active = Column(Boolean, default=True)
+    # para no duplicar: último mes/año en que ya se generó
+    last_generated_month = Column(Integer, nullable=True)
+    last_generated_year = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "description": self.description,
+            "amount": self.amount,
+            "category": self.category,
+            "day_of_month": self.day_of_month,
+            "active": self.active,
+            "last_generated_month": self.last_generated_month,
+            "last_generated_year": self.last_generated_year,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class Budget(Base):
     __tablename__ = "budgets"
 

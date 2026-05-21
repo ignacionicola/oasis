@@ -15,6 +15,7 @@ from app.dependencies import get_current_user
 from app.models import Expense, Income, User
 from app.models.schemas import MonthSummary, BudgetStatus
 from app.skills.budget_alert import get_all_budget_status
+from app.skills.recurring_generator import generate_recurring_expenses_for_user
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -35,6 +36,10 @@ def get_month_summary(
     today = date.today()
     month = month or today.month
     year = year or today.year
+
+    # Genera los gastos recurrentes pendientes antes de calcular el resumen.
+    # Lazy generation: cada vez que el usuario abre la app se ponen al día.
+    generate_recurring_expenses_for_user(current_user.id, db)
 
     income_total = db.query(func.sum(Income.amount)).filter(
         and_(

@@ -110,6 +110,38 @@ class IncomeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ── Recurring Expense Schemas ──
+
+class RecurringExpenseCreate(BaseModel):
+    description: str = Field(..., min_length=1, max_length=500)
+    amount: float = Field(..., gt=0)
+    category: str = Field(default="Otros")
+    day_of_month: int = Field(..., ge=1, le=28)
+
+
+class RecurringExpenseUpdate(BaseModel):
+    description: str | None = Field(None, min_length=1, max_length=500)
+    amount: float | None = Field(None, gt=0)
+    category: str | None = None
+    day_of_month: int | None = Field(None, ge=1, le=28)
+    active: bool | None = None
+
+
+class RecurringExpenseResponse(BaseModel):
+    id: int
+    user_id: int
+    description: str
+    amount: float
+    category: str
+    day_of_month: int
+    active: bool
+    last_generated_month: int | None
+    last_generated_year: int | None
+    created_at: dt.datetime | None
+
+    model_config = {"from_attributes": True}
+
+
 # ── Budget Schemas ──
 
 class BudgetCreate(BaseModel):

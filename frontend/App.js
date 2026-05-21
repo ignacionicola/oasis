@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -34,16 +35,36 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import SplashScreenComponent from './src/screens/SplashScreen';
+import RecurringScreen from './src/screens/RecurringScreen';
 import CustomTabBar from './src/components/CustomTabBar';
 
 SplashScreen.preventAutoHideAsync();
 
 const Tab = createMaterialTopTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function MainTabs() {
+  const t = useTranslation();
+  return (
+    <Tab.Navigator
+      tabBarPosition="bottom"
+      swipeEnabled={true}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        tabBarIndicatorStyle: { height: 0 },
+      }}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabs.home }} />
+      <Tab.Screen name="Stats" component={StatsScreen} options={{ tabBarLabel: t.tabs.stats }} />
+      <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t.tabs.history }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t.tabs.settings }} />
+    </Tab.Navigator>
+  );
+}
 
 function AppNavigator() {
   const { settings, loaded } = useSettings();
   const { user, loading: authLoading } = useAuth();
-  const t = useTranslation();
   const isDark = settings.theme === 'dark';
 
   const [fontsLoaded] = useFonts({
@@ -97,19 +118,10 @@ function AppNavigator() {
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
-        <Tab.Navigator
-          tabBarPosition="bottom"
-          swipeEnabled={true}
-          tabBar={(props) => <CustomTabBar {...props} />}
-          screenOptions={{
-            tabBarIndicatorStyle: { height: 0 },
-          }}
-        >
-          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t.tabs.home }} />
-          <Tab.Screen name="Stats" component={StatsScreen} options={{ tabBarLabel: t.tabs.stats }} />
-          <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t.tabs.history }} />
-          <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t.tabs.settings }} />
-        </Tab.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Tabs" component={MainTabs} />
+          <Stack.Screen name="Recurring" component={RecurringScreen} />
+        </Stack.Navigator>
       </NavigationContainer>
     </View>
   );

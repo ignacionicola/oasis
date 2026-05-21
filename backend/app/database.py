@@ -39,6 +39,21 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     _add_user_id_columns()
     _migrate_google_columns()
+    _create_recurring_table()
+
+
+def _create_recurring_table():
+    """Crea la tabla recurring_expenses si no existe (idempotente).
+
+    create_all() ya la crearía al registrar el modelo, pero lo hacemos
+    explícito para asegurar que existe incluso si el orden de imports cambia.
+    """
+    from app.models import RecurringExpense
+
+    try:
+        RecurringExpense.__table__.create(bind=engine, checkfirst=True)
+    except Exception as e:
+        print(f"[migrate_recurring] {str(e).splitlines()[0]}")
 
 
 def _migrate_google_columns():

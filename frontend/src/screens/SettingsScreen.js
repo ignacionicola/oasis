@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -31,6 +32,7 @@ export default function SettingsScreen({ navigation }) {
   const { user, logout } = useAuth();
   const isDark = settings.theme === 'dark';
   const t = useTranslation();
+  const rootNavigation = useNavigation();
 
   const [exporting, setExporting] = useState(false);
 
@@ -554,6 +556,25 @@ export default function SettingsScreen({ navigation }) {
                 </TouchableOpacity>
               );
             })}
+          </View>
+
+          {/* Automatización */}
+          <Text style={styles.sectionLabel}>{t.recurring.menuTitle}</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={[styles.linkRow, { borderBottomWidth: 0 }]}
+              activeOpacity={0.7}
+              onPress={() => rootNavigation.navigate('Recurring')}
+            >
+              <View style={[styles.toggleIcon, { backgroundColor: colors.primary + '15' }]}>
+                <MaterialIcons name="autorenew" size={18} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toggleTitle}>{t.recurring.menuLink}</Text>
+                <Text style={styles.toggleSub}>{t.recurring.menuSub}</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />
+            </TouchableOpacity>
           </View>
 
           {/* Datos */}

@@ -200,6 +200,34 @@ class ApiService {
     }
   }
 
+  // ── Recurring expenses ──
+
+  async getRecurringExpenses() {
+    return this.request('/recurring/');
+  }
+
+  async createRecurringExpense(data) {
+    return this.request('/recurring/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRecurringExpense(id, data) {
+    return this.request(`/recurring/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteRecurringExpense(id) {
+    return this.request(`/recurring/${id}`, { method: 'DELETE' });
+  }
+
+  async toggleRecurringExpense(id) {
+    return this.request(`/recurring/${id}/toggle`, { method: 'PATCH' });
+  }
+
   // ── Budgets ──
 
   async getBudgets() {
