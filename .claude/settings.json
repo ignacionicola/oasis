@@ -35,7 +35,10 @@
       "Bash(npx expo-doctor *)",
       "Bash(npm uninstall *)",
       "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/models/__init__.py','app/models/schemas.py','app/routes/recurring.py','app/skills/recurring_generator.py','app/routes/dashboard.py','app/main.py','app/database.py']]; print\\('OK - sintaxis valida en los 7 archivos'\\)\")",
-      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\('native-stack:', p.dependencies['@react-navigation/native-stack'] || 'NO INSTALADO'\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\('native-stack:', p.dependencies['@react-navigation/native-stack'] || 'NO INSTALADO'\\)\")",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['app/models/__init__.py','app/models/schemas.py','app/routes/savings.py','app/main.py','app/database.py']]; print\\('OK - sintaxis valida en los 5 archivos'\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\('datetimepicker:', p.dependencies['@react-native-community/datetimepicker'] || 'NO INSTALADO'\\)\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

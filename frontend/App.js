@@ -36,6 +36,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import SplashScreenComponent from './src/screens/SplashScreen';
 import RecurringScreen from './src/screens/RecurringScreen';
+import SavingsScreen from './src/screens/SavingsScreen';
 import CustomTabBar from './src/components/CustomTabBar';
 
 SplashScreen.preventAutoHideAsync();
@@ -121,6 +122,7 @@ function AppNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Tabs" component={MainTabs} />
           <Stack.Screen name="Recurring" component={RecurringScreen} />
+          <Stack.Screen name="Savings" component={SavingsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </View>

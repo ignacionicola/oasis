@@ -203,6 +203,7 @@ export default function HomeScreen({ navigation }) {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [error, setError] = useState(null);
   const [flashId, setFlashId] = useState(null);
+  const [savingsGoals, setSavingsGoals] = useState([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -211,14 +212,16 @@ export default function HomeScreen({ navigation }) {
       const curY = now.getFullYear();
       const prevM = curM === 1 ? 12 : curM - 1;
       const prevY = curM === 1 ? curY - 1 : curY;
-      const [summaryData, expenseData, prevData] = await Promise.all([
+      const [summaryData, expenseData, prevData, goalsData] = await Promise.all([
         api.getMonthSummary(curM, curY),
         api.getExpenses({ month: curM, year: curY }),
         api.getMonthSummary(prevM, prevY).catch(() => null),
+        api.getSavingsGoals().catch(() => []),
       ]);
       setSummary(summaryData);
       setExpenses(expenseData);
       setPrevSummary(prevData);
+      setSavingsGoals(goalsData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -448,6 +451,54 @@ export default function HomeScreen({ navigation }) {
       marginTop: spacing.md,
     },
     // budget
+    // savings carousel
+    savingsScroll: {
+      marginTop: spacing.md,
+    },
+    savingsContent: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+    },
+    savingsMini: {
+      width: 150,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.md,
+      gap: 8,
+      ...shadows.sm,
+    },
+    savingsMiniTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    savingsDot: {
+      width: 8, height: 8, borderRadius: 4,
+    },
+    savingsName: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    savingsPct: {
+      fontFamily: fonts.displayBold,
+      fontSize: 20,
+      letterSpacing: -0.5,
+    },
+    savingsTrack: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.borderLight,
+      overflow: 'hidden',
+    },
+    savingsFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
     budgetCard: {
       marginHorizontal: spacing.lg,
       marginTop: spacing.md,
@@ -695,6 +746,39 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
+        {/* ── Savings goals carousel ───────────────────────────────────── */}
+        {activeGoals.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.savingsScroll}
+            contentContainerStyle={styles.savingsContent}
+          >
+            {activeGoals.map((g) => {
+              const pct = g.target_amount > 0
+                ? Math.min(100, Math.round((g.current_amount / g.target_amount) * 100))
+                : 0;
+              return (
+                <TouchableOpacity
+                  key={g.id}
+                  style={styles.savingsMini}
+                  onPress={() => navigation?.navigate?.('Savings')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.savingsMiniTop}>
+                    <View style={[styles.savingsDot, { backgroundColor: g.color }]} />
+                    <Text style={styles.savingsName} numberOfLines={1}>{g.name}</Text>
+                  </View>
+                  <Text style={[styles.savingsPct, { color: g.color }]}>{pct}%</Text>
+                  <View style={styles.savingsTrack}>
+                    <View style={[styles.savingsFill, { width: `${pct}%`, backgroundColor: g.color }]} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
         {/* ── Budget card ──────────────────────────────────────────────── */}
         {totalBudgetLimit > 0 && (
           <View style={styles.budgetCard}>
@@ -764,6 +848,12 @@ export default function HomeScreen({ navigation }) {
 
   // show only first 5 in home
   const visibleExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
+
+  // metas activas (no completadas), máximo 3 en el carousel del home
+  const activeGoals = useMemo(
+    () => savingsGoals.filter((g) => !g.completed).slice(0, 3),
+    [savingsGoals]
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

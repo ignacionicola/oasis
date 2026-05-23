@@ -125,6 +125,33 @@ class RecurringExpense(Base):
         }
 
 
+class SavingsGoal(Base):
+    __tablename__ = "savings_goals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    target_amount = Column(Float, nullable=False)
+    current_amount = Column(Float, nullable=False, default=0.0)
+    target_date = Column(Date, nullable=False)
+    color = Column(String(20), nullable=False, default="#1D9E75")
+    completed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "target_amount": self.target_amount,
+            "current_amount": self.current_amount,
+            "target_date": self.target_date.isoformat() if self.target_date else None,
+            "color": self.color,
+            "completed": self.completed,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class Budget(Base):
     __tablename__ = "budgets"
 

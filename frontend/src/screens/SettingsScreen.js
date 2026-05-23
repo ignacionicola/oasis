@@ -562,7 +562,7 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.sectionLabel}>{t.recurring.menuTitle}</Text>
           <View style={styles.card}>
             <TouchableOpacity
-              style={[styles.linkRow, { borderBottomWidth: 0 }]}
+              style={styles.linkRow}
               activeOpacity={0.7}
               onPress={() => rootNavigation.navigate('Recurring')}
             >
@@ -572,6 +572,20 @@ export default function SettingsScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.toggleTitle}>{t.recurring.menuLink}</Text>
                 <Text style={styles.toggleSub}>{t.recurring.menuSub}</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.linkRow, { borderBottomWidth: 0 }]}
+              activeOpacity={0.7}
+              onPress={() => rootNavigation.navigate('Savings')}
+            >
+              <View style={[styles.toggleIcon, { backgroundColor: colors.success + '15' }]}>
+                <MaterialIcons name="savings" size={18} color={colors.success} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toggleTitle}>{t.savings.menuLink}</Text>
+                <Text style={styles.toggleSub}>{t.savings.menuSub}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={20} color={colors.textQuaternary} />
             </TouchableOpacity>

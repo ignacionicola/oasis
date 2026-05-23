@@ -40,6 +40,7 @@ def init_db():
     _add_user_id_columns()
     _migrate_google_columns()
     _create_recurring_table()
+    _create_savings_table()
 
 
 def _create_recurring_table():
@@ -54,6 +55,16 @@ def _create_recurring_table():
         RecurringExpense.__table__.create(bind=engine, checkfirst=True)
     except Exception as e:
         print(f"[migrate_recurring] {str(e).splitlines()[0]}")
+
+
+def _create_savings_table():
+    """Crea la tabla savings_goals si no existe (idempotente)."""
+    from app.models import SavingsGoal
+
+    try:
+        SavingsGoal.__table__.create(bind=engine, checkfirst=True)
+    except Exception as e:
+        print(f"[migrate_savings] {str(e).splitlines()[0]}")
 
 
 def _migrate_google_columns():

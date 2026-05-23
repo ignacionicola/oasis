@@ -228,6 +228,48 @@ class ApiService {
     return this.request(`/recurring/${id}/toggle`, { method: 'PATCH' });
   }
 
+  // ── Savings goals ──
+
+  async getSavingsGoals() {
+    return this.request('/savings/');
+  }
+
+  async getSavingsGoal(id) {
+    return this.request(`/savings/${id}`);
+  }
+
+  async createSavingsGoal(data) {
+    return this.request('/savings/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSavingsGoal(id, data) {
+    return this.request(`/savings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSavingsGoal(id) {
+    return this.request(`/savings/${id}`, { method: 'DELETE' });
+  }
+
+  async contributeToGoal(id, amount) {
+    return this.request(`/savings/${id}/contribute`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  async withdrawFromGoal(id, amount) {
+    return this.request(`/savings/${id}/withdraw`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
   // ── Budgets ──
 
   async getBudgets() {

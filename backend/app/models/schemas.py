@@ -142,6 +142,43 @@ class RecurringExpenseResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ── Savings Goal Schemas ──
+
+class SavingsGoalCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    target_amount: float = Field(..., gt=0)
+    target_date: dt.date
+    color: str | None = Field(default="#1D9E75")
+
+
+class SavingsGoalUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    target_amount: float | None = Field(None, gt=0)
+    target_date: dt.date | None = None
+    color: str | None = None
+    completed: bool | None = None
+
+
+class SavingsGoalContribution(BaseModel):
+    amount: float = Field(..., gt=0)
+
+
+class SavingsGoalResponse(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    target_amount: float
+    current_amount: float
+    target_date: dt.date
+    color: str
+    completed: bool
+    created_at: dt.datetime | None
+    months_remaining: int
+    monthly_required: float
+
+    model_config = {"from_attributes": True}
+
+
 # ── Budget Schemas ──
 
 class BudgetCreate(BaseModel):
