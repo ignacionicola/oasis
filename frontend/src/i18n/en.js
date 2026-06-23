@@ -30,6 +30,11 @@ export default {
     dailyAverageDot: 'Daily average',
     daysLeft: '{n} days left',
     expensesCount: '{n} expenses',
+    nextGoal: 'NEXT GOAL',
+    nextRecurring: 'NEXT RECURRING',
+    createFirstGoal: 'Create your first goal',
+    automateExpenses: 'Automate your expenses',
+    dayLabel: 'Day {day}',
   },
   addExpense: {
     title: 'New expense',

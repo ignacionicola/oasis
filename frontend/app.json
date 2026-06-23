@@ -8,16 +8,16 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0A1628"
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#041005"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#0A1628"
+        "foregroundImage": "./assets/adaptive_foreground.png",
+        "backgroundColor": "#041005"
       },
-      "package": "com.oasisfinance.app",
+      "package": "com.plata.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE"

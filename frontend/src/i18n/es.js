@@ -30,6 +30,11 @@ export default {
     dailyAverageDot: 'Promedio diario',
     daysLeft: 'Quedan {n} días',
     expensesCount: '{n} gastos',
+    nextGoal: 'PRÓXIMA META',
+    nextRecurring: 'PRÓXIMO RECURRENTE',
+    createFirstGoal: 'Creá tu primera meta',
+    automateExpenses: 'Automatizá tus gastos',
+    dayLabel: 'Día {day}',
   },
   addExpense: {
     title: 'Nuevo gasto',

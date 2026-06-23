@@ -204,6 +204,7 @@ export default function HomeScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [flashId, setFlashId] = useState(null);
   const [savingsGoals, setSavingsGoals] = useState([]);
+  const [recurringExpenses, setRecurringExpenses] = useState([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -212,16 +213,18 @@ export default function HomeScreen({ navigation }) {
       const curY = now.getFullYear();
       const prevM = curM === 1 ? 12 : curM - 1;
       const prevY = curM === 1 ? curY - 1 : curY;
-      const [summaryData, expenseData, prevData, goalsData] = await Promise.all([
+      const [summaryData, expenseData, prevData, goalsData, recurringData] = await Promise.all([
         api.getMonthSummary(curM, curY),
         api.getExpenses({ month: curM, year: curY }),
         api.getMonthSummary(prevM, prevY).catch(() => null),
         api.getSavingsGoals().catch(() => []),
+        api.getRecurringExpenses().catch(() => []),
       ]);
       setSummary(summaryData);
       setExpenses(expenseData);
       setPrevSummary(prevData);
       setSavingsGoals(goalsData);
+      setRecurringExpenses(recurringData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -451,53 +454,76 @@ export default function HomeScreen({ navigation }) {
       marginTop: spacing.md,
     },
     // budget
-    // savings carousel
-    savingsScroll: {
-      marginTop: spacing.md,
-    },
-    savingsContent: {
+    // quick access cards (próxima meta + próximo recurrente)
+    quickCardsRow: {
       flexDirection: 'row',
       gap: spacing.sm,
       paddingHorizontal: spacing.lg,
+      marginTop: spacing.md,
     },
-    savingsMini: {
-      width: 150,
+    quickCard: {
+      flex: 1,
+      height: 110,
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.border,
-      padding: spacing.md,
-      gap: 8,
-      ...shadows.sm,
+      padding: 16,
     },
-    savingsMiniTop: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    quickCardLabel: {
+      fontFamily: fonts.sansBold,
+      fontSize: 10,
+      letterSpacing: 0.12,
+      color: colors.textTertiary,
+      marginBottom: 8,
+    },
+    quickCardBody: {
+      flex: 1,
+      justifyContent: 'center',
       gap: 6,
     },
-    savingsDot: {
-      width: 8, height: 8, borderRadius: 4,
-    },
-    savingsName: {
+    quickCardName: {
       flex: 1,
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
       color: colors.textPrimary,
     },
-    savingsPct: {
-      fontFamily: fonts.displayBold,
-      fontSize: 20,
-      letterSpacing: -0.5,
+    quickCardSub: {
+      fontSize: 11,
+      color: colors.textTertiary,
     },
-    savingsTrack: {
-      height: 6,
+    quickTrack: {
+      height: 5,
       borderRadius: 3,
       backgroundColor: colors.borderLight,
       overflow: 'hidden',
     },
-    savingsFill: {
+    quickFill: {
       height: '100%',
       borderRadius: 3,
+    },
+    quickRecurringTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    quickRecurringAmount: {
+      fontFamily: fonts.displayBold,
+      fontSize: 18,
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    quickCardEmpty: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    quickCardEmptyText: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      textAlign: 'center',
     },
     budgetCard: {
       marginHorizontal: spacing.lg,
@@ -746,38 +772,75 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* ── Savings goals carousel ───────────────────────────────────── */}
-        {activeGoals.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.savingsScroll}
-            contentContainerStyle={styles.savingsContent}
+        {/* ── Quick access: próxima meta + próximo recurrente ──────────── */}
+        <View style={styles.quickCardsRow}>
+          {/* Próxima meta */}
+          <TouchableOpacity
+            style={styles.quickCard}
+            onPress={() => navigation?.navigate?.('Savings')}
+            activeOpacity={0.8}
           >
-            {activeGoals.map((g) => {
-              const pct = g.target_amount > 0
-                ? Math.min(100, Math.round((g.current_amount / g.target_amount) * 100))
-                : 0;
-              return (
-                <TouchableOpacity
-                  key={g.id}
-                  style={styles.savingsMini}
-                  onPress={() => navigation?.navigate?.('Savings')}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.savingsMiniTop}>
-                    <View style={[styles.savingsDot, { backgroundColor: g.color }]} />
-                    <Text style={styles.savingsName} numberOfLines={1}>{g.name}</Text>
+            <Text style={styles.quickCardLabel}>{t.home.nextGoal}</Text>
+            {nextGoal ? (
+              (() => {
+                const pct = nextGoal.target_amount > 0
+                  ? Math.min(100, Math.round((nextGoal.current_amount / nextGoal.target_amount) * 100))
+                  : 0;
+                return (
+                  <View style={styles.quickCardBody}>
+                    <Text style={styles.quickCardName} numberOfLines={1}>{nextGoal.name}</Text>
+                    <View style={styles.quickTrack}>
+                      <View style={[styles.quickFill, { width: `${pct}%`, backgroundColor: nextGoal.color }]} />
+                    </View>
+                    <Text style={styles.quickCardSub} numberOfLines={1}>
+                      {formatCurrency(nextGoal.current_amount, currency)} / {formatCurrency(nextGoal.target_amount, currency)}
+                    </Text>
                   </View>
-                  <Text style={[styles.savingsPct, { color: g.color }]}>{pct}%</Text>
-                  <View style={styles.savingsTrack}>
-                    <View style={[styles.savingsFill, { width: `${pct}%`, backgroundColor: g.color }]} />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
+                );
+              })()
+            ) : (
+              <View style={styles.quickCardEmpty}>
+                <MaterialIcons name="flag" size={26} color={colors.textTertiary} />
+                <Text style={styles.quickCardEmptyText}>{t.home.createFirstGoal}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Próximo recurrente */}
+          <TouchableOpacity
+            style={styles.quickCard}
+            onPress={() => navigation?.navigate?.('Recurring')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.quickCardLabel}>{t.home.nextRecurring}</Text>
+            {nextRecurring ? (
+              <View style={styles.quickCardBody}>
+                <View style={styles.quickRecurringTop}>
+                  <CategoryIcon
+                    category={nextRecurring.category}
+                    color={colors.categories[nextRecurring.category] || colors.textTertiary}
+                    size={16}
+                    containerSize={30}
+                  />
+                  <Text style={styles.quickCardName} numberOfLines={1}>
+                    {nextRecurring.description}
+                  </Text>
+                </View>
+                <Text style={styles.quickRecurringAmount}>
+                  {formatCurrency(nextRecurring.amount, currency)}
+                </Text>
+                <Text style={styles.quickCardSub}>
+                  {t.home.dayLabel.replace('{day}', nextRecurring.day_of_month)}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.quickCardEmpty}>
+                <MaterialIcons name="repeat" size={26} color={colors.textTertiary} />
+                <Text style={styles.quickCardEmptyText}>{t.home.automateExpenses}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* ── Budget card ──────────────────────────────────────────────── */}
         {totalBudgetLimit > 0 && (
@@ -849,11 +912,26 @@ export default function HomeScreen({ navigation }) {
   // show only first 5 in home
   const visibleExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
 
-  // metas activas (no completadas), máximo 3 en el carousel del home
-  const activeGoals = useMemo(
-    () => savingsGoals.filter((g) => !g.completed).slice(0, 3),
-    [savingsGoals]
-  );
+  // próxima meta: la activa con menor % de progreso (más lejos de completarse)
+  const nextGoal = useMemo(() => {
+    const active = savingsGoals.filter((g) => !g.completed);
+    if (!active.length) return null;
+    const pct = (g) => (g.target_amount > 0 ? g.current_amount / g.target_amount : 0);
+    return [...active].sort((a, b) => pct(a) - pct(b))[0];
+  }, [savingsGoals]);
+
+  // próximo recurrente: el activo cuya próxima fecha de generación es la más cercana
+  const nextRecurring = useMemo(() => {
+    const active = recurringExpenses.filter((r) => r.active);
+    if (!active.length) return null;
+    const today = new Date().getDate();
+    // "distancia en días" hasta la próxima generación
+    const distance = (r) =>
+      r.day_of_month >= today
+        ? r.day_of_month - today
+        : r.day_of_month - today + 31; // mes siguiente
+    return [...active].sort((a, b) => distance(a) - distance(b))[0];
+  }, [recurringExpenses]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
